@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro PDF Splitter</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries: PDF-Lib (Processing), JSZip (Zipping), FileSaver (Downloading) -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .drag-over { border-color: #f97316 !important; background-color: #fff7ed !important; }
+        
+        /* Custom Radio Button Styling */
+        .radio-card:has(input:checked) {
+            border-color: #f97316;
+            background-color: #fff7ed;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-scissors text-orange-500 text-2xl"></i>
+                    <span class="font-bold text-xl tracking-tight">PDF<span class="text-orange-500">Splitter</span></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="hidden sm:block text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-1 rounded">Secure & Local</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-3xl mx-auto w-full p-6">
+        
+        <div class="text-center mb-8 mt-4">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Split PDF Files</h1>
+            <p class="text-slate-500">Separate one page or a whole set for easy conversion.</p>
+        </div>
+
+        <!-- 1. Upload Section -->
+        <div id="upload-section" class="transition-all duration-300">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl bg-white p-12 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 relative group transition">
+                <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="application/pdf">
+                <div class="pointer-events-none">
+                    <div class="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-import text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-700">Select PDF file</h3>
+                    <p class="text-sm text-slate-400 mt-1">or drag and drop it here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Settings Section (Hidden initially) -->
+        <div id="settings-section" class="hidden mt-6">
+            
+            <!-- File Info Card -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex items-center justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 bg-red-50 text-red-500 rounded flex items-center justify-center">
+                        <i class="fa-solid fa-file-pdf text-2xl"></i>
+                    </div>
+                    <div>
+                        <p id="file-name" class="font-bold text-slate-700 truncate max-w-[200px] sm:max-w-md">filename.pdf</p>
+                        <p class="text-xs text-slate-500"><span id="page-count">0</span> Pages | <span id="file-size">0 MB</span></p>
+                    </div>
+                </div>
+                <button onclick="resetApp()" class="text-slate-400 hover:text-red-500 transition" title="Remove"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- Split Options -->
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Split Mode</h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <!-- Option 1: Extract Ranges -->
+                <label class="radio-card cursor-pointer border-2 border-slate-200 rounded-lg p-4 bg-white hover:border-orange-300 transition relative">
+                    <input type="radio" name="split-mode" value="range" checked class="absolute opacity-0 w-0 h-0" onchange="toggleMode()">
+                    <div class="flex items-center gap-3">
+                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center radio-circle">
+                            <div class="w-2.5 h-2.5 rounded-full bg-orange-500 hidden checked-dot"></div>
+                        </div>
+                        <span class="font-semibold text-slate-700">Extract Pages</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2 pl-8">Select specific pages (e.g., 1-5, 8, 10)</p>
+                </label>
+
+                <!-- Option 2: Split All -->
+                <label class="radio-card cursor-pointer border-2 border-slate-200 rounded-lg p-4 bg-white hover:border-orange-300 transition relative">
+                    <input type="radio" name="split-mode" value="all" class="absolute opacity-0 w-0 h-0" onchange="toggleMode()">
+                    <div class="flex items-center gap-3">
+                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center radio-circle">
+                            <div class="w-2.5 h-2.5 rounded-full bg-orange-500 hidden checked-dot"></div>
+                        </div>
+                        <span class="font-semibold text-slate-700">Extract Every Page</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2 pl-8">Save each page as a separate PDF file.</p>
+                </label>
+            </div>
+
+            <!-- Range Input (Visible only for Option 1) -->
+            <div id="range-input-container" class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm mb-6">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Pages to Extract</label>
+                <input type="text" id="page-ranges" placeholder="e.g. 1-5, 8, 11-13" 
+                    class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition font-mono text-slate-600">
+                <p class="text-xs text-slate-400 mt-2"><i class="fa-solid fa-circle-info mr-1"></i> Use commas for single pages and hyphens for ranges.</p>
+            </div>
+
+            <!-- Action Button -->
+            <button onclick="processSplit()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg">
+                <span>Split PDF</span>
+                <i class="fa-solid fa-scissors"></i>
+            </button>
+        </div>
+
+        <!-- 3. Success / Download Section -->
+        <div id="success-section" class="hidden mt-8 text-center bg-green-50 border border-green-200 rounded-xl p-8">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <i class="fa-solid fa-check text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800 mb-2">Ready to Download!</h3>
+            <p id="success-message" class="text-slate-600 mb-6">Your PDF has been split successfully.</p>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="download-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-zipper"></i> Download Files
+                </button>
+                <button onclick="resetApp()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold py-3 px-8 rounded-lg shadow-sm transition">
+                    Split Another
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 text-center text-slate-400 text-sm bg-white border-t border-slate-200">
+        <p>&copy; 2024 PDFSplitter Pro. No server upload required.</p>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500 mb-4"></div>
+        <p id="loader-text" class="text-lg font-semibold text-slate-700">Processing PDF...</p>
+    </div>
+
+    <script>
+        // PDF Lib & Zip setup
+        const { PDFDocument } = PDFLib;
+        let currentFile = null;
+        let pdfDoc = null;
+        let generatedZipBlob = null;
+        let generatedPdfBlob = null;
+        let isSingleFile = false;
+
+        // UI Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const settingsSection = document.getElementById('settings-section');
+        const uploadSection = document.getElementById('upload-section');
+        const successSection = document.getElementById('success-section');
+        const rangeInputContainer = document.getElementById('range-input-container');
+        const loader = document.getElementById('loader');
+        
+        // Drag & Drop
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', (e) => { handleFile(e.target.files[0]); });
+
+        // CSS Fix for radio buttons
+        const style = document.createElement('style');
+        style.innerHTML = `input:checked + div .checked-dot { display: block; }`;
+        document.head.appendChild(style);
+
+        async function handleFile(file) {
+            if (!file || file.type !== 'application/pdf') {
+                alert("Please upload a valid PDF file.");
+                return;
+            }
+            
+            loader.classList.remove('hidden');
+            document.getElementById('loader-text').innerText = "Loading PDF...";
+            
+            try {
+                currentFile = file;
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await PDFDocument.load(arrayBuffer);
+                
+                // Update Info
+                document.getElementById('file-name').innerText = file.name;
+                document.getElementById('file-size').innerText = (file.size / 1024 / 1024).toFixed(2) + " MB";
+                document.getElementById('page-count').innerText = pdfDoc.getPageCount();
+                
+                // Show Settings
+                uploadSection.classList.add('hidden');
+                settingsSection.classList.remove('hidden');
+            } catch (err) {
+                alert("Error reading PDF. It might be password protected.");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function toggleMode() {
+            const mode = document.querySelector('input[name="split-mode"]:checked').value;
+            if (mode === 'range') {
+                rangeInputContainer.classList.remove('hidden');
+            } else {
+                rangeInputContainer.classList.add('hidden');
+            }
+        }
+
+        async function processSplit() {
+            const mode = document.querySelector('input[name="split-mode"]:checked').value;
+            const totalPages = pdfDoc.getPageCount();
+            let pagesToExtract = [];
+
+            // 1. Determine which pages to extract
+            if (mode === 'all') {
+                for (let i = 0; i < totalPages; i++) pagesToExtract.push(i);
+            } else {
+                const input = document.getElementById('page-ranges').value;
+                if (!input.trim()) { alert("Please enter page numbers (e.g., 1-5)."); return; }
+                
+                try {
+                    pagesToExtract = parsePageRange(input, totalPages);
+                } catch (e) {
+                    alert(e.message);
+                    return;
+                }
+            }
+
+            if(pagesToExtract.length === 0) { alert("No valid pages selected."); return; }
+
+            loader.classList.remove('hidden');
+            document.getElementById('loader-text').innerText = "Splitting PDF...";
+
+            try {
+                // If creating individual files for each page (Split All)
+                if (mode === 'all') {
+                    const zip = new JSZip();
+                    
+                    for (let i = 0; i < pagesToExtract.length; i++) {
+                        const pageIndex = pagesToExtract[i];
+                        const newPdf = await PDFDocument.create();
+                        const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
+                        newPdf.addPage(copiedPage);
+                        
+                        const pdfBytes = await newPdf.save();
+                        zip.file(`${currentFile.name.replace('.pdf','')}_page_${pageIndex + 1}.pdf`, pdfBytes);
+                    }
+
+                    generatedZipBlob = await zip.generateAsync({type:"blob"});
+                    isSingleFile = false;
+                    document.getElementById('success-message').textContent = `Successfully created ${pagesToExtract.length} separate files.`;
+                } 
+                // If Extracting specific range into ONE new PDF
+                else {
+                    // Note: Usually "Extract" means create 1 new PDF with selected pages.
+                    // If you want separate files for Range too, logic changes slightly.
+                    // Here I am assuming Range = Create 1 filtered PDF.
+                    
+                    const newPdf = await PDFDocument.create();
+                    const copiedPages = await newPdf.copyPages(pdfDoc, pagesToExtract);
+                    copiedPages.forEach(page => newPdf.addPage(page));
+                    
+                    const pdfBytes = await newPdf.save();
+                    generatedPdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
+                    isSingleFile = true;
+                    document.getElementById('success-message').textContent = `Extracted ${pagesToExtract.length} pages into a new document.`;
+                }
+
+                // Show Success
+                settingsSection.classList.add('hidden');
+                successSection.classList.remove('hidden');
+
+                // Setup Download Button
+                const btn = document.getElementById('download-btn');
+                btn.onclick = () => {
+                    if(isSingleFile) {
+                        saveAs(generatedPdfBlob, `split_${currentFile.name}`);
+                    } else {
+                        saveAs(generatedZipBlob, `${currentFile.name.replace('.pdf','')}_split_files.zip`);
+                    }
+                };
+
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during splitting.");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        // Logic to parse inputs like "1-3, 5, 8-10"
+        function parsePageRange(input, totalPages) {
+            const pages = new Set();
+            const parts = input.split(',');
+
+            parts.forEach(part => {
+                const range = part.trim().split('-');
+                if (range.length === 1) {
+                    const page = parseInt(range[0]);
+                    if (isNaN(page) || page < 1 || page > totalPages) throw new Error(`Invalid page number: ${range[0]}`);
+                    pages.add(page - 1); // Convert to 0-index
+                } else if (range.length === 2) {
+                    let start = parseInt(range[0]);
+                    let end = parseInt(range[1]);
+                    if (isNaN(start) || isNaN(end) || start > end || start < 1 || end > totalPages) throw new Error(`Invalid range: ${part}`);
+                    for (let i = start; i <= end; i++) pages.add(i - 1);
+                }
+            });
+            return Array.from(pages).sort((a, b) => a - b);
+        }
+
+        function resetApp() {
+            currentFile = null;
+            pdfDoc = null;
+            generatedZipBlob = null;
+            generatedPdfBlob = null;
+            fileInput.value = "";
+            document.getElementById('page-ranges').value = "";
+            
+            successSection.classList.add('hidden');
+            settingsSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+        }
+    </script>
+</body>
+      </html>
