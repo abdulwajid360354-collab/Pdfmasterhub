@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grayscale PDF Pro | PDF Master</title>
+    
+    <!-- UI Framework -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF Reading (PDF.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- PDF Writing (jsPDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* The Preview Canvas */
+        .canvas-container {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            transition: filter 0.3s ease;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px; width: 20px;
+            border-radius: 50%;
+            background: #111827; /* Black */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+
+        /* Loader */
+        .loader {
+            width: 20px; height: 20px;
+            border: 3px solid #fff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Navbar (Monochrome Theme) -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-gray-900 text-white w-9 h-9 rounded-lg flex items-center justify-center shadow-lg">
+                        <i class="fa-solid fa-filter"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-gray-900">PDF<span class="text-gray-500">Grayscale</span></span>
+                </div>
+                <div class="flex gap-4">
+                    <span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full border border-gray-200">
+                        <i class="fa-solid fa-droplet-slash mr-1"></i> Ink Saver
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- LEFT: Controls & Upload -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Upload Area -->
+                <div id="upload-card" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center">
+                    <div class="relative group cursor-pointer" onclick="document.getElementById('file-input').click()">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-300 group-hover:border-gray-900 transition-colors">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 group-hover:text-gray-900"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Upload PDF</h3>
+                        <p class="text-xs text-gray-500 mt-1">Convert color to B&W</p>
+                        <input type="file" id="file-input" accept="application/pdf" class="hidden">
+                    </div>
+                    
+                    <!-- File Info (Hidden Initially) -->
+                    <div id="file-info" class="hidden mt-4 pt-4 border-t border-gray-100">
+                        <div class="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                            <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                            <div class="text-left overflow-hidden">
+                                <p id="filename" class="text-sm font-bold text-gray-800 truncate w-full">file.pdf</p>
+                                <p id="page-count" class="text-xs text-gray-500">Calculating...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings (Hidden Initially) -->
+                <div id="settings-card" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6 opacity-0 transition-opacity duration-500">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Adjustments
+                    </h3>
+
+                    <!-- Contrast -->
+                    <div class="mb-5">
+                        <label class="flex justify-between text-xs font-bold text-gray-500 mb-2">
+                            <span>Contrast</span>
+                            <span id="val-contrast">0%</span>
+                        </label>
+                        <input type="range" id="contrast" min="-50" max="100" value="0" oninput="updatePreview()">
+                    </div>
+
+                    <!-- Brightness -->
+                    <div class="mb-6">
+                        <label class="flex justify-between text-xs font-bold text-gray-500 mb-2">
+                            <span>Brightness</span>
+                            <span id="val-brightness">0%</span>
+                        </label>
+                        <input type="range" id="brightness" min="-50" max="50" value="0" oninput="updatePreview()">
+                    </div>
+
+                    <button id="convert-btn" onclick="processPDF()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <span id="btn-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                        <span id="btn-text">Convert & Download</span>
+                    </button>
+
+                    <!-- Progress Bar -->
+                    <div id="progress-wrapper" class="hidden mt-4">
+                        <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
+                            <span id="progress-status">Processing...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div id="progress-bar" class="bg-gray-800 h-full transition-all duration-200" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Live Preview -->
+            <div class="lg:col-span-2 flex flex-col items-center justify-center bg-gray-200/50 rounded-2xl border-2 border-dashed border-gray-300 min-h-[500px] relative overflow-hidden" id="preview-area">
+                
+                <!-- Placeholder -->
+                <div id="preview-placeholder" class="text-center text-gray-400">
+                    <i class="fa-solid fa-image text-4xl mb-2"></i>
+                    <p>Preview will appear here</p>
+                </div>
+
+                <!-- Canvas -->
+                <canvas id="pdf-canvas" class="hidden canvas-container max-w-full h-auto"></canvas>
+                
+                <!-- Badge -->
+                <div id="preview-badge" class="hidden absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                    Live Preview (Page 1)
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto py-6 text-center">
+        <p class="text-gray-500 text-sm">&copy; 2023 PDF Master. Professional Tools.</p>
+    </footer>
+
+    <script>
+        // --- VARIABLES ---
+        let pdfDoc = null;
+        let originalPageImageData = null; // Store original pixel data of Page 1 for fast previewing
+        const fileInput = document.getElementById('file-input');
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // --- 1. FILE UPLOAD ---
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // UI Updates
+            document.getElementById('file-info').classList.remove('hidden');
+            document.getElementById('filename').textContent = file.name;
+            document.getElementById('settings-card').classList.remove('hidden');
+            
+            // Animation for Settings
+            setTimeout(() => document.getElementById('settings-card').classList.remove('opacity-0'), 100);
+
+            // Load PDF
+            const arrayBuffer = await file.arrayBuffer();
+            pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            document.getElementById('page-count').textContent = `${pdfDoc.numPages} Pages`;
+
+            // Render Preview of Page 1
+            await renderPreviewPage();
+        });
+
+        // --- 2. RENDER PREVIEW (BASE) ---
+        async function renderPreviewPage() {
+            const page = await pdfDoc.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 }); // Good quality for preview
+
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+            // Save Original Data for filters
+            originalPageImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // UI Toggle
+            document.getElementById('preview-placeholder').classList.add('hidden');
+            canvas.classList.remove('hidden');
+            document.getElementById('preview-badge').classList.remove('hidden');
+            document.getElementById('preview-area').classList.remove('border-dashed', 'border-gray-300');
+
+            // Apply default grayscale
+            updatePreview();
+        }
+
+        // --- 3. APPLY FILTERS (Client-Side Pixel Manipulation) ---
+        function updatePreview() {
+            if (!originalPageImageData) return;
+
+            const contrast = parseInt(document.getElementById('contrast').value);
+            const brightness = parseInt(document.getElementById('brightness').value);
+
+            // Update Labels
+            document.getElementById('val-contrast').textContent = (contrast > 0 ? '+' : '') + contrast + '%';
+            document.getElementById('val-brightness').textContent = (brightness > 0 ? '+' : '') + brightness + '%';
+
+            // Get Copy of Original Data
+            const imageData = new ImageData(
+                new Uint8ClampedArray(originalPageImageData.data),
+                originalPageImageData.width,
+                originalPageImageData.height
+            );
+            const data = imageData.data;
+
+            // Pre-calculate Contrast Factor
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            // Loop Pixels
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                // 1. Grayscale (Luminosity Method)
+                let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                // 2. Apply Brightness
+                gray += brightness;
+
+                // 3. Apply Contrast
+                gray = factor * (gray - 128) + 128;
+
+                // Clamp values 0-255
+                gray = Math.max(0, Math.min(255, gray));
+
+                data[i] = gray;     // R
+                data[i + 1] = gray; // G
+                data[i + 2] = gray; // B
+                // Alpha (data[i+3]) remains same
+            }
+
+            // Put back to canvas
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // --- 4. CONVERT ALL PAGES & DOWNLOAD ---
+        async function processPDF() {
+            if (!pdfDoc) return;
+
+            const btn = document.getElementById('convert-btn');
+            const progressWrap = document.getElementById('progress-wrapper');
+            const progressBar = document.getElementById('progress-bar');
+            const progressTxt = document.getElementById('progress-percent');
+            const statusTxt = document.getElementById('progress-status');
+
+            // Lock UI
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            progressWrap.classList.remove('hidden');
+
+            const contrast = parseInt(document.getElementById('contrast').value);
+            const brightness = parseInt(document.getElementById('brightness').value);
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            // Setup jsPDF
+            const { jsPDF } = window.jspdf;
+            // Create PDF based on first page orientation, but we adjust per page loop
+            const doc = new jsPDF(); 
+            
+            // Offscreen Canvas for processing
+            const workCanvas = document.createElement('canvas');
+            const workCtx = workCanvas.getContext('2d');
+
+            try {
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    // Update Progress
+                    const percent = Math.round((i / pdfDoc.numPages) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    progressTxt.textContent = `${percent}%`;
+                    statusTxt.textContent = `Converting Page ${i}...`;
+
+                    // Render Page
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 }); // 1.5 is good balance of quality/speed
+                    
+                    workCanvas.width = viewport.width;
+                    workCanvas.height = viewport.height;
+
+                    await page.render({ canvasContext: workCtx, viewport: viewport }).promise;
+
+                    // Get Pixels
+                    const imageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+                    const data = imageData.data;
+
+                    // Apply Filters (Same Logic as Preview)
+                    for (let j = 0; j < data.length; j += 4) {
+                        let gray = 0.299 * data[j] + 0.587 * data[j+1] + 0.114 * data[j+2];
+                        gray += brightness;
+                        gray = factor * (gray - 128) + 128;
+                        gray = Math.max(0, Math.min(255, gray));
+                        data[j] = data[j+1] = data[j+2] = gray;
+                    }
+                    workCtx.putImageData(imageData, 0, 0);
+
+                    // Convert to JPG (High Compression for B&W)
+                    const imgData = workCanvas.toDataURL('image/jpeg', 0.8);
+
+                    // Add to PDF
+                    if (i > 1) doc.addPage([viewport.width, viewport.height]);
+                    else {
+                        // Resize first page to match PDF content
+                        doc.deletePage(1);
+                        doc.addPage([viewport.width, viewport.height]);
+                    }
+                    
+                    doc.setPage(i);
+                    doc.addImage(imgData, 'JPEG', 0, 0, viewport.width * 0.264583, viewport.height * 0.264583); // px to mm
+                    
+                    // Small delay to allow UI to breathe
+                    await new Promise(r => setTimeout(r, 10));
+                }
+
+                statusTxt.textContent = "Saving...";
+                doc.save("grayscale_document.pdf");
+
+                // Finish
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Done!`;
+                btn.classList.remove('bg-gray-900', 'hover:bg-black');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-green-600', 'hover:bg-green-700');
+                    btn.classList.add('bg-gray-900', 'hover:bg-black');
+                    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Convert & Download`;
+                    progressWrap.classList.add('hidden');
+                }, 3000);
+
+            } catch (err) {
+                console.error(err);
+                alert("Error processing PDF");
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+                      </html>
