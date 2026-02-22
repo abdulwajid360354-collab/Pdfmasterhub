@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Watermark Pro | PDF Master</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF-Lib (Latest Version) -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+    <!-- PDF.js (For Preview) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <style>
+        :root {
+            --brand: #8b5cf6; /* Violet */
+            --light: #f8fafc;
+            --dark: #0f172a;
+        }
+
+        body { font-family: 'Outfit', sans-serif; background-color: var(--light); color: var(--dark); }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Loader */
+        .loader {
+            width: 20px; height: 20px;
+            border: 3px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Preview Area */
+        #preview-wrapper {
+            position: relative;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            border: 1px solid #e2e8f0;
+            display: inline-block;
+            overflow: hidden;
+            background: white;
+        }
+
+        /* Overlay Element */
+        #watermark-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            white-space: nowrap;
+            user-select: none;
+            transform-origin: center center;
+            z-index: 10;
+        }
+        
+        input[type=range] { accent-color: var(--brand); cursor: pointer; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='index.html'">
+                    <div class="w-8 h-8 rounded flex items-center justify-center bg-violet-600 text-white shadow-sm">
+                        <i class="fa-solid fa-stamp"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">PDF<span class="text-violet-600">Master</span></span>
+                </div>
+                <div class="flex gap-4">
+                    <span class="px-3 py-1 bg-violet-50 text-violet-700 text-xs font-semibold rounded-full border border-violet-100">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Watermark Tool
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6 flex justify-center items-start pt-10">
+        <div class="w-full max-w-6xl fade-in">
+            
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-slate-900">Add Watermark to PDF</h1>
+                <p class="text-slate-500 mt-2">Stamp text or images with custom transparency. 100% Client-Side.</p>
+            </div>
+
+            <!-- Upload Section -->
+            <div id="upload-section" class="bg-white rounded-2xl shadow-xl border border-slate-200 p-10 text-center">
+                <div id="drop-zone" class="relative group w-full max-w-2xl mx-auto h-60 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-violet-50 transition-all bg-slate-50" onclick="document.getElementById('file-input').click()">
+                    <input type="file" id="file-input" accept="application/pdf" class="hidden">
+                    <div class="text-center pointer-events-none">
+                        <i class="fa-solid fa-stamp text-5xl text-slate-300 mb-4 group-hover:text-violet-500 transition-colors"></i>
+                        <p class="text-lg font-bold text-slate-700">Drop PDF here</p>
+                        <p class="text-sm text-slate-400 mt-1">Supports Text & Image Watermarks</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Section (Hidden initially) -->
+            <div id="editor-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Controls (Left) -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+                        
+                        <!-- Tabs -->
+                        <div class="flex bg-slate-100 p-1 rounded-lg mb-6">
+                            <button onclick="switchTab('text')" id="tab-text" class="flex-1 py-2 text-sm font-bold rounded-md bg-white shadow-sm text-violet-700 transition">Text</button>
+                            <button onclick="switchTab('image')" id="tab-image" class="flex-1 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-violet-700 transition">Image</button>
+                        </div>
+
+                        <!-- Text Controls -->
+                        <div id="controls-text" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Watermark Text</label>
+                                <input type="text" id="wm-text" value="CONFIDENTIAL" class="w-full border rounded-lg p-2 mt-1 focus:ring-violet-500 focus:border-violet-500 outline-none font-semibold text-slate-700" oninput="updatePreview()">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Color</label>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <input type="color" id="wm-color" value="#ff0000" class="w-10 h-10 rounded cursor-pointer border-none p-0" oninput="updatePreview()">
+                                        <span class="text-xs text-slate-400">Pick Color</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500">Font Size</label>
+                                    <input type="number" id="wm-size" value="60" class="w-full border rounded-lg p-2 mt-1" oninput="updatePreview()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Image Controls -->
+                        <div id="controls-image" class="hidden space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Upload Logo (PNG/JPG)</label>
+                                <input type="file" id="img-input" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 mt-1 border rounded-lg" onchange="handleImageUpload()">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">Scale Image</label>
+                                <input type="range" id="wm-scale" min="10" max="200" value="50" class="w-full mt-2" oninput="updatePreview()">
+                            </div>
+                        </div>
+
+                        <!-- Common Controls -->
+                        <div class="pt-4 border-t border-slate-100 space-y-4 mt-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 flex justify-between">
+                                    <span>Opacity</span> <span id="val-opacity" class="text-violet-600">50%</span>
+                                </label>
+                                <input type="range" id="wm-opacity" min="0" max="100" value="50" class="w-full mt-1" oninput="updatePreview()">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 flex justify-between">
+                                    <span>Rotation</span> <span id="val-rotation" class="text-violet-600">-45°</span>
+                                </label>
+                                <input type="range" id="wm-rotation" min="-180" max="180" value="-45" class="w-full mt-1" oninput="updatePreview()">
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button id="download-btn" onclick="applyWatermark()" class="w-full mt-6 bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-violet-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]">
+                            <span class="loader hidden" id="loader"></span>
+                            <span id="btn-text">Apply & Download PDF</span>
+                        </button>
+                        
+                        <button onclick="location.reload()" class="w-full text-xs text-slate-400 hover:text-slate-600 mt-2">Start Over</button>
+
+                    </div>
+                </div>
+
+                <!-- Preview (Right) -->
+                <div class="lg:col-span-2 bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center p-8 overflow-auto min-h-[500px]">
+                    <div id="preview-wrapper">
+                        <!-- Canvas renders PDF page here -->
+                        <canvas id="pdf-canvas" class="block"></canvas>
+                        
+                        <!-- Overlay HTML Element (Visual Preview) -->
+                        <div id="watermark-overlay" class="text-6xl font-bold text-red-500 opacity-50 -rotate-45" style="font-family: Helvetica, sans-serif;">
+                            CONFIDENTIAL
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6 text-center">
+        <p class="text-slate-500 text-sm">&copy; 2023 PDF Master. Secure Processing.</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const imgInput = document.getElementById('img-input');
+        const uploadSection = document.getElementById('upload-section');
+        const editorSection = document.getElementById('editor-section');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const watermarkOverlay = document.getElementById('watermark-overlay');
+        const downloadBtn = document.getElementById('download-btn');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btn-text');
+
+        // State Variables
+        let originalPdfBytes = null; // ArrayBuffer for PDF
+        let watermarkImageBytes = null; // ArrayBuffer for Image Watermark
+        let watermarkImageType = ''; // 'png' or 'jpg'
+        let watermarkType = 'text'; // 'text' or 'image'
+        let currentFileName = '';
+
+        // --- 1. PDF Upload Handling ---
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') return alert("Please upload a valid PDF file");
+            
+            currentFileName = file.name;
+            originalPdfBytes = await file.arrayBuffer(); // Save as ArrayBuffer for PDF-Lib
+            
+            // Render Page 1 Preview
+            await renderPdfPreview(originalPdfBytes);
+            
+            uploadSection.classList.add('hidden');
+            editorSection.classList.remove('hidden');
+            updatePreview(); 
+        });
+
+        // --- 2. Preview Logic (using PDF.js) ---
+        async function renderPdfPreview(pdfBytes) {
+            // We use a copy of bytes for PDF.js to avoid detaching buffers
+            const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice(0) });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            
+            // Calculate scale to fit container width roughly
+            const containerWidth = document.querySelector('.lg\\:col-span-2').clientWidth - 64; 
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            const scale = Math.min(containerWidth / unscaledViewport.width, 1.2); // Limit max scale
+            
+            const viewport = page.getViewport({ scale: scale });
+            const context = pdfCanvas.getContext('2d');
+            pdfCanvas.height = viewport.height;
+            pdfCanvas.width = viewport.width;
+
+            // Resize Wrapper to match canvas exactly (for centering overlay)
+            const wrapper = document.getElementById('preview-wrapper');
+            wrapper.style.width = `${viewport.width}px`;
+            wrapper.style.height = `${viewport.height}px`;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+        }
+
+        // --- 3. Image Watermark Upload ---
+        function handleImageUpload() {
+            const file = imgInput.files[0];
+            if (file) {
+                watermarkImageType = file.type; // Store mime type (image/png or image/jpeg)
+                
+                // Read as ArrayBuffer for PDF-Lib
+                const readerForPdf = new FileReader();
+                readerForPdf.onload = (e) => {
+                    watermarkImageBytes = e.target.result;
+                };
+                readerForPdf.readAsArrayBuffer(file);
+
+                // Read as DataURL for HTML Preview
+                const readerForPreview = new FileReader();
+                readerForPreview.onload = (e) => {
+                    watermarkOverlay.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: auto; pointer-events: none;">`;
+                    watermarkOverlay.style.width = "200px";
+                    updatePreview();
+                };
+                readerForPreview.readAsDataURL(file);
+            }
+        }
+
+        // --- 4. Tab Switching ---
+        window.switchTab = (type) => {
+            watermarkType = type;
+            const textTab = document.getElementById('tab-text');
+            const imgTab = document.getElementById('tab-image');
+            const textControls = document.getElementById('controls-text');
+            const imgControls = document.getElementById('controls-image');
+
+            if (type === 'text') {
+                textTab.className = "flex-1 py-2 text-sm font-bold rounded-md bg-white shadow-sm text-violet-700 transition";
+                imgTab.className = "flex-1 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-violet-700 transition";
+                textControls.classList.remove('hidden');
+                imgControls.classList.add('hidden');
+                // Restore Text Preview
+                watermarkOverlay.innerHTML = document.getElementById('wm-text').value;
+                watermarkOverlay.style.width = "auto";
+            } else {
+                imgTab.className = "flex-1 py-2 text-sm font-bold rounded-md bg-white shadow-sm text-violet-700 transition";
+                textTab.className = "flex-1 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-violet-700 transition";
+                imgControls.classList.remove('hidden');
+                textControls.classList.add('hidden');
+                // Restore Image Preview
+                if (imgInput.files[0]) {
+                    // Trigger reload of image preview logic
+                    const reader = new FileReader();
+                    reader.onload = (e) => { 
+                         watermarkOverlay.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: auto;">`;
+                         updatePreview();
+                    };
+                    reader.readAsDataURL(imgInput.files[0]);
+                } else {
+                    watermarkOverlay.innerHTML = "<span class='text-xs text-gray-400 border border-dashed border-gray-400 p-2'>Upload Image</span>";
+                }
+            }
+            updatePreview();
+        };
+
+        // --- 5. Real-time Preview ---
+        window.updatePreview = () => {
+            const opacity = document.getElementById('wm-opacity').value;
+            const rotation = document.getElementById('wm-rotation').value;
+            
+            // Visual Styles
+            watermarkOverlay.style.opacity = opacity / 100;
+            watermarkOverlay.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+            // Update Labels
+            document.getElementById('val-opacity').innerText = `${opacity}%`;
+            document.getElementById('val-rotation').innerText = `${rotation}°`;
+
+            if (watermarkType === 'text') {
+                const text = document.getElementById('wm-text').value;
+                const color = document.getElementById('wm-color').value;
+                const size = document.getElementById('wm-size').value;
+
+                watermarkOverlay.innerText = text;
+                watermarkOverlay.style.color = color;
+                watermarkOverlay.style.fontSize = `${size}px`;
+                watermarkOverlay.style.fontFamily = "Helvetica, sans-serif";
+            } else {
+                // Image Scale
+                const scale = document.getElementById('wm-scale').value;
+                watermarkOverlay.style.width = `${scale * 2}px`; // Visual approximation
+            }
+        };
+
+        // --- 6. Apply Watermark Logic (Fix for ArrayBuffer Error) ---
+        async function applyWatermark() {
+            if (!originalPdfBytes) return alert("No PDF loaded");
+
+            downloadBtn.disabled = true;
+            loader.classList.remove('hidden');
+            btnText.innerText = "Applying...";
+
+            try {
+                const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+                
+                // Load the PDF from the ArrayBuffer we saved earlier
+                const pdfDoc = await PDFDocument.load(originalPdfBytes);
+                const pages = pdfDoc.getPages();
+
+                // Get UI Values
+                const opacity = document.getElementById('wm-opacity').value / 100;
+                const rotation = parseInt(document.getElementById('wm-rotation').value);
+                
+                if (watermarkType === 'text') {
+                    const text = document.getElementById('wm-text').value;
+                    const size = parseInt(document.getElementById('wm-size').value);
+                    const hexColor = document.getElementById('wm-color').value;
+                    
+                    //
