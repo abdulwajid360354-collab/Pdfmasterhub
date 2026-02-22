@@ -91,6 +91,36 @@
         .hero h1 { font-size: 2.5rem; color: var(--dark); margin-bottom: 10px; }
         .hero p { color: #475569; }
 
+        /* --- ADVERTISEMENT STYLES (NEW) --- */
+        .ad-container {
+            width: 100%;
+            background-color: #e2e8f0; /* Grey background for placeholder */
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #64748b;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Banner Size (Desktop) */
+        .ad-banner {
+            max-width: 728px;
+            height: 90px;
+        }
+
+        /* In-Grid Ad Wrapper */
+        .ad-grid-wrapper {
+            grid-column: 1 / -1; /* Spans full width of grid */
+            width: 100%;
+        }
+
         /* --- TOOLS GRID (3 PER LINE) --- */
         .tools-grid {
             display: grid;
@@ -184,6 +214,12 @@
         @media(max-width: 600px) {
             .tools-grid { grid-template-columns: 1fr; }
             .nav-links { display: none; }
+            
+            /* Responsive Ad Size for Mobile */
+            .ad-banner {
+                height: 250px; 
+                max-width: 300px;
+            }
         }
     </style>
 </head>
@@ -205,6 +241,12 @@
         <div class="hero">
             <h1>We Make PDF Easy.</h1>
             <p>All the tools you'll ever need to work with PDFs in one place.</p>
+        </div>
+
+        <!-- AD SPACE 1: TOP BANNER -->
+        <div class="ad-container ad-banner">
+            <!-- Google AdSense Code Here -->
+            <p>Ad Space (728x90)</p>
         </div>
 
         <!-- Grid Layout: 3 tools per line -->
@@ -242,6 +284,14 @@
                 <div class="tool-icon"><i class="fa-regular fa-image"></i></div>
                 <h3>PDF to JPG</h3>
                 <p>Convert pages to images.</p>
+            </div>
+
+            <!-- AD SPACE 2: MIDDLE (INSIDE GRID) -->
+            <div class="ad-grid-wrapper">
+                <div class="ad-container ad-banner">
+                    <!-- Google AdSense Code Here -->
+                    <p>Ad Space (In-Feed)</p>
+                </div>
             </div>
 
             <!-- ROW 3 -->
@@ -329,6 +379,12 @@
             </div>
 
         </div>
+
+        <!-- AD SPACE 3: BOTTOM BANNER -->
+        <div class="ad-container ad-banner">
+            <!-- Google AdSense Code Here -->
+            <p>Ad Space (Bottom)</p>
+        </div>
     </div>
 
     <!-- 2. ABOUT US PAGE -->
@@ -336,6 +392,12 @@
         <div class="content-box">
             <h2>About Us</h2>
             <p>Welcome to PDF Master. We provide free, secure, and fast PDF solutions directly in your browser. Unlike other sites, we do not store your files on our servers.</p>
+            
+            <!-- Ad in content -->
+            <div class="ad-container ad-banner">
+                <p>Ad Space</p>
+            </div>
+
             <h3>Our Mission</h3>
             <p>To provide high-quality PDF tools for free to students, professionals, and businesses.</p>
         </div>
@@ -417,4 +479,4 @@
 </script>
 
 </body>
-  </html>
+    </html>
