@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Page Numbers | PDF Master</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF-Lib (For Editing) -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    
+    <!-- Icons/Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { brand: { 500: '#0ea5e9', 600: '#0284c7' } } // Sky Blue Theme
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f1f5f9; }
+
+        /* Position Grid */
+        .pos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 120px;
+            margin: 0 auto;
+        }
+        .pos-box {
+            width: 32px; height: 32px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        .pos-box:hover { border-color: #0ea5e9; }
+        .pos-box.active {
+            background-color: #0ea5e9;
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Live Preview Document */
+        #preview-doc {
+            width: 100%;
+            aspect-ratio: 1 / 1.414; /* A4 Ratio */
+            background: white;
+            position: relative;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s ease;
+        }
+
+        /* The Moving Page Number in Preview */
+        #preview-text {
+            position: absolute;
+            font-size: 12px;
+            color: #334155;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            line-height: 1;
+        }
+
+        /* Loader */
+        .loader {
+            width: 20px; height: 20px; border: 3px solid #FFF; 
+            border-bottom-color: transparent; border-radius: 50%; 
+            animation: rotation 1s linear infinite; display: inline-block;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 h-16 sticky top-0 z-50 px-6 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2 text-slate-800 font-bold text-xl">
+            <div class="w-8 h-8 bg-brand-500 text-white rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-list-ol"></i>
+            </div>
+            <span>PDF<span class="text-brand-600">Numerator</span></span>
+        </div>
+        
+        <div class="text-xs font-medium text-slate-500 hidden sm:block">
+            <i class="fa-solid fa-check-circle mr-1 text-green-500"></i> No file uploads
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6 w-full max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-900">Add Page Numbers</h1>
+            <p class="text-slate-500 mt-2">Insert numbering into your PDF documents with custom formatting.</p>
+        </div>
+
+        <!-- 1. Upload Section -->
+        <div id="upload-section" class="max-w-2xl mx-auto bg-white rounded-2xl border-2 border-dashed border-slate-300 p-10 text-center transition hover:border-brand-500 cursor-pointer" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" accept="application/pdf" class="hidden">
+            <div class="w-16 h-16 bg-sky-50 text-brand-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700">Click to upload PDF</h3>
+            <p class="text-sm text-slate-400 mt-1">We'll load it for preview instantly</p>
+        </div>
+
+        <!-- 2. Editor Section (Hidden) -->
+        <div id="editor-section" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Controls (Left) -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Position Card -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-to-dot text-brand-500"></i> Position
+                    </h3>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs text-slate-500 space-y-1">
+                            <p>Select where the numbers appear.</p>
+                            <p>Current: <strong id="pos-label" class="text-brand-600">Bottom Center</strong></p>
+                        </div>
+                        
+                        <!-- 9-Grid Position Selector -->
+                        <div class="pos-grid">
+                            <div class="pos-box" onclick="setPos('top-left')" data-pos="top-left"></div>
+                            <div class="pos-box" onclick="setPos('top-center')" data-pos="top-center"></div>
+                            <div class="pos-box" onclick="setPos('top-right')" data-pos="top-right"></div>
+                            
+                            <div class="pos-box opacity-50 cursor-not-allowed bg-slate-100"></div>
+                            <div class="pos-box opacity-50 cursor-not-allowed bg-slate-100"></div>
+                            <div class="pos-box opacity-50 cursor-not-allowed bg-slate-100"></div>
+                            
+                            <div class="pos-box" onclick="setPos('bottom-left')" data-pos="bottom-left"></div>
+                            <div class="pos-box active" onclick="setPos('bottom-center')" data-pos="bottom-center"></div>
+                            <div class="pos-box" onclick="setPos('bottom-right')" data-pos="bottom-right"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Card -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-brand-500"></i> Style & Format
+                    </h3>
+
+                    <!-- Format -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Number Format</label>
+                        <select id="num-format" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-brand-500 outline-none" onchange="updatePreview()">
+                            <option value="n">1</option>
+                            <option value="p_n">Page 1</option>
+                            <option value="n_of_t">1 of 10</option>
+                            <option value="p_n_of_t">Page 1 of 10</option>
+                        </select>
+                    </div>
+
+                    <!-- Range & Start -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Start Numbering At</label>
+                            <input type="number" id="start-num" value="1" min="1" class="w-full border border-slate-300 rounded-lg p-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Margin (px)</label>
+                            <input type="number" id="margin-val" value="20" class="w-full border border-slate-300 rounded-lg p-2 text-sm" oninput="updatePreview()">
+                        </div>
+                    </div>
+
+                    <!-- Font Size -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Font Size: <span id="fs-label">12</span></label>
+                        <input type="range" id="font-size" min="8" max="24" value="12" class="w-full accent-sky-500" oninput="updatePreview()">
+                    </div>
+                </div>
+
+                <button id="download-btn" onclick="addPageNumbers()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span class="loader hidden" id="loader"></span>
+                    <span id="btn-text">Process PDF</span>
+                </button>
+
+            </div>
+
+            <!-- Preview (Right) -->
+            <div class="lg:col-span-7 bg-slate-200/50 rounded-2xl border border-slate-200 flex flex-col items-center justify-center p-8">
+                <div class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">Live Visual Preview</div>
+                
+                <div class="w-full max-w-sm relative">
+                    <!-- The Fake Document -->
+                    <div id="preview-doc">
+                        <!-- The Fake Page Number -->
+                        <div id="preview-text">1</div>
+                        
+                        <!-- Dummy Content Lines for realism -->
+                        <div class="absolute top-10 left-10 right-10 space-y-3 opacity-10 pointer-events-none">
+                            <div class="h-4 bg-slate-800 rounded w-3/4"></div>
+                            <div class="h-4 bg-slate-800 rounded w-full"></div>
+                            <div class="h-4 bg-slate-800 rounded w-5/6"></div>
+                            <div class="h-4 bg-slate-800 rounded w-full"></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-4 text-xs text-slate-500"><i class="fa-solid fa-info-circle"></i> Preview shows approximate placement on A4 page.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6 text-center">
+        <p class="text-slate-500 text-sm">&copy; 2023 PDF Master. Professional Tools.</p>
+    </footer>
+
+    <script>
+        // State
+        let currentPos = 'bottom-center';
+        let originalPdfBytes = null;
+        let originalFileName = '';
+
+        const fileInput = document.getElementById('file-input');
+        const previewText = document.getElementById('preview-text');
+        
+        // --- 1. File Upload ---
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            originalFileName = file.name;
+            originalPdfBytes = await file.arrayBuffer();
+
+            // UI Switch
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('editor-section').classList.remove('hidden');
+            document.getElementById('editor-section').classList.add('grid');
+            
+            updatePreview();
+        });
+
+        // --- 2. Positioning Logic ---
+        function setPos(pos) {
+            currentPos = pos;
+            
+            // UI Active State
+            document.querySelectorAll('.pos-box').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-pos="${pos}"]`).classList.add('active');
+            
+            // Update Label
+            const labels = {
+                'top-left': 'Top Left', 'top-center': 'Top Center', 'top-right': 'Top Right',
+                'bottom-left': 'Bottom Left', 'bottom-center': 'Bottom Center', 'bottom-right': 'Bottom Right'
+            };
+            document.getElementById('pos-label').textContent = labels[pos];
+
+            updatePreview();
+        }
+
+        // --- 3. Live Preview Updater (HTML/CSS) ---
+        function updatePreview() {
+            const format = document.getElementById('num-format').value;
+            const startNum = document.getElementById('start-num').value;
+            const margin = document.getElementById('margin-val').value + 'px';
+            const size = document.getElementById('font-size').value + 'px';
+            
+            // Update Font Size Label
+            document.getElementById('fs-label').textContent = parseInt(size);
+
+            // Set Text Content
+            let text = startNum;
+            if (format === 'p_n') text = `Page ${startNum}`;
+            if (format === 'n_of_t') text = `${startNum} of 10`;
+            if (format === 'p_n_of_t') text = `Page ${startNum} of 10`;
+            
+            previewText.textContent = text;
+            previewText.style.fontSize = size;
+
+            // Reset positioning
+            previewText.style.top = 'auto';
+            previewText.style.bottom = 'auto';
+            previewText.style.left = 'auto';
+            previewText.style.right = 'auto';
+            previewText.style.transform = 'none';
+
+            // Apply CSS positioning based on grid selection
+            if (currentPos.includes('top')) previewText.style.top = margin;
+            if (currentPos.includes('bottom')) previewText.style.bottom = margin;
+            
+            if (currentPos.includes('left')) previewText.style.left = margin;
+            if (currentPos.includes('right')) previewText.style.right = margin;
+            
+            if (currentPos.includes('center')) {
+                previewText.style.left = '50%';
+                previewText.style.transform = 'translateX(-50%)';
+            }
+        }
+
+        // --- 4. APPLY TO PDF (Core Logic) ---
+        async function addPageNumbers() {
+            if (!originalPdfBytes) return;
+
+            const btn = document.getElementById('download-btn');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btn-text');
+
+            // Lock UI
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            btnText.textContent = "Processing...";
+
+            try {
+                const { PDFDocument, rgb, StandardFonts } = PDFLib;
+                
+                const pdfDoc = await PDFDocument.load(originalPdfBytes);
+                const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                const pages = pdfDoc.getPages();
+                const totalPages = pages.length;
+
+                // User Settings
+                const fontSize = parseInt(document.getElementById('font-size').value);
+                const margin = parseInt(document.getElementById('margin-val').value);
+                const startNum = parseInt(document.getElementById('start-num').value);
+                const format = document.getElementById('num-format').value;
+
+                // Loop Pages
+                for (let i = 0; i < totalPages; i++) {
+                    const page = pages[i];
+                    const { width, height } = page.getSize();
+                    
+                    const pageNumDisplay = i + startNum; // Adjust start number
+                    
+                    // Format Text
+                    let text = `${pageNumDisplay}`;
+                    if (format === 'p_n') text = `Page ${pageNumDisplay}`;
+                    if (format === 'n_of_t') text = `${pageNumDisplay} of ${totalPages}`;
+                    if (format === 'p_n_of_t') text = `Page ${pageNumDisplay} of ${totalPages}`;
+
+                    const textWidth = font.widthOfTextAtSize(text, fontSize);
+                    const textHeight = font.heightAtSize(fontSize);
+
+                    // Calculate Coordinates
+                    let x, y;
+
+                    // X Axis
+                    if (currentPos.includes('left')) x = margin;
+                    else if (currentPos.includes('right')) x = width - margin - textWidth;
+                    else x = (width / 2) - (textWidth / 2); // Center
+
+                    // Y Axis (PDF coordinates start from bottom)
+                    // Top in PDF = height - margin - textHeight
+                    // Bottom in PDF = margin
+                    if (currentPos.includes('top')) y = height - margin - textHeight;
+                    else y = margin;
+
+                    // Draw
+                    page.drawText(text, {
+                        x: x,
+                        y: y,
+                        size: fontSize,
+                        font: font,
+                        color: rgb(0.2, 0.2, 0.2), // Dark Grey
+                    });
+                }
+
+                // Save
+                const pdfBytes = await pdfDoc.save();
+                downloadFile(pdfBytes, "numbered_" + originalFileName);
+
+                // Success UI
+                btnText.textContent = "Done!";
+                loader.classList.add('hidden');
+                btn.classList.replace('bg-slate-800', 'bg-green-600');
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btnText.textContent = "Process PDF";
+                    btn.classList.replace('bg-green-600', 'bg-slate-800');
+                }, 3000);
+
+            } catch (error) {
+                console.error(error);
+                alert("Error adding page numbers.");
+                loader.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        function downloadFile(data, filename) {
+            const blob = new Blob([data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Initialize preview on load
+        updatePreview();
+    </script>
+</body>
+      </html>
