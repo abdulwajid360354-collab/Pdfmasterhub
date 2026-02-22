@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repair PDF Pro | PDF Master</title>
+    
+    <!-- UI Framework -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF Processing Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Icons/Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Space Grotesk"', 'sans-serif'] },
+                    colors: { repair: { 500: '#f59e0b', 600: '#d97706' } } // Amber/Construction theme
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; }
+        
+        /* Terminal Log Style */
+        .console-window {
+            background: #1e293b;
+            color: #10b981;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+        }
+        .console-line { margin-bottom: 4px; display: block; }
+        .console-error { color: #ef4444; }
+        .console-warn { color: #f59e0b; }
+
+        /* Animations */
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div class="flex items-center gap-2 text-xl font-bold text-slate-800">
+            <div class="w-8 h-8 bg-repair-500 text-white rounded flex items-center justify-center">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+            </div>
+            <span>PDF<span class="text-repair-600">RepairKit</span></span>
+        </div>
+        <div class="text-xs font-semibold bg-orange-50 text-orange-700 px-3 py-1 rounded-full border border-orange-100">
+            <i class="fa-solid fa-heart-pulse mr-1"></i> Diagnostic Tool
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6 max-w-4xl mx-auto w-full">
+        
+        <!-- Header Text -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-900">Repair Corrupted PDF</h1>
+            <p class="text-slate-500 mt-2">Recover data from broken, unreadable, or damaged PDF files.</p>
+        </div>
+
+        <!-- 1. Upload Section -->
+        <div id="upload-section" class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center transition-all">
+            <div id="drop-zone" class="relative group h-52 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-repair-500 hover:bg-orange-50/50 transition-all bg-slate-50" onclick="document.getElementById('file-input').click()">
+                <input type="file" id="file-input" accept="application/pdf" class="hidden">
+                
+                <div class="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-file-medical text-3xl text-repair-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-700">Drop damaged PDF here</h3>
+                <p class="text-sm text-slate-400 mt-1">We will attempt to rebuild the XREF table</p>
+            </div>
+        </div>
+
+        <!-- 2. Diagnostic & Repair Section (Hidden) -->
+        <div id="repair-section" class="hidden">
+            
+            <!-- File Info Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-file-circle-exclamation text-red-500 text-2xl"></i>
+                    <div>
+                        <h4 id="filename" class="font-bold text-slate-800">document.pdf</h4>
+                        <p id="filesize" class="text-xs text-slate-500">0 KB</p>
+                    </div>
+                </div>
+                <button onclick="location.reload()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>
+            </div>
+
+            <!-- Repair Options Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                
+                <!-- Option 1: Structure Fix -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center gap-2 mb-2 text-repair-600 font-bold">
+                        <i class="fa-solid fa-hammer"></i> Mode A: Structural Fix
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4 h-10">Reconstructs the file structure headers and XREF tables. Keeps text editable.</p>
+                    <button onclick="startRepair('structure')" id="btn-structure" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded-lg transition text-sm">
+                        Attempt Structural Fix
+                    </button>
+                </div>
+
+                <!-- Option 2: Visual Recovery -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center gap-2 mb-2 text-blue-600 font-bold">
+                        <i class="fa-solid fa-eye"></i> Mode B: Visual Recovery
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4 h-10">Use if Mode A fails. Renders pages as images and rebuilds PDF. (Text not editable).</p>
+                    <button onclick="startRepair('visual')" id="btn-visual" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition text-sm">
+                        Start Deep Recovery
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal Log -->
+            <div class="console-window" id="console">
+                <span class="console-line">> System Ready.</span>
+                <span class="console-line">> Waiting for file input...</span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="hidden mt-4">
+                <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                    <span id="status-text">Processing...</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-repair-500 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6 text-center">
+        <p class="text-slate-500 text-sm">&copy; 2023 PDF Master. Client-Side Repair.</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const uploadSection = document.getElementById('upload-section');
+        const repairSection = document.getElementById('repair-section');
+        const consoleDiv = document.getElementById('console');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress-container');
+        const statusText = document.getElementById('status-text');
+        const percentText = document.getElementById('progress-percent');
+
+        let selectedFile = null;
+        let fileArrayBuffer = null;
+
+        // --- Logger Function ---
+        function log(msg, type = 'info') {
+            const line = document.createElement('span');
+            line.className = 'console-line';
+            if(type === 'error') line.classList.add('console-error');
+            if(type === 'warn') line.classList.add('console-warn');
+            
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: "numeric", minute: "numeric", second: "numeric"});
+            line.textContent = `[${time}] ${msg}`;
+            
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        // --- File Upload ---
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            selectedFile = file;
+            document.getElementById('filename').textContent = file.name;
+            document.getElementById('filesize').textContent = (file.size / 1024 / 1024).toFixed(2) + " MB";
+
+            uploadSection.classList.add('hidden');
+            repairSection.classList.remove('hidden');
+            
+            log(`File loaded: ${file.name}`);
+            log(`Size: ${file.size} bytes`);
+            
+            try {
+                fileArrayBuffer = await file.arrayBuffer();
+                log("Binary data read successfully.");
+                log("Running preliminary diagnostic check...");
+                checkHeader(fileArrayBuffer);
+            } catch (err) {
+                log("CRITICAL: Cannot read file data.", "error");
+            }
+        });
+
+        // --- Simple Header Check ---
+        function checkHeader(buffer) {
+            const header = new Uint8Array(buffer.slice(0, 5));
+            const headerStr = String.fromCharCode.apply(null, header);
+            if (headerStr.startsWith('%PDF-')) {
+                log(`Header OK: ${headerStr}`);
+            } else {
+                log(`WARNING: Invalid Header detected (${headerStr}). File is likely corrupted.`, "warn");
+                log("Recommendation: Use Mode B (Visual Recovery).", "warn");
+            }
+        }
+
+        // --- MASTER REPAIR FUNCTION ---
+        async function startRepair(mode) {
+            // Reset UI
+            document.querySelectorAll('button').forEach(b => b.disabled = true);
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            
+            if (mode === 'structure') {
+                await repairStructure();
+            } else {
+                await repairVisual();
+            }
+        }
+
+        // --- MODE A: Structural Fix (PDF-Lib) ---
+        async function repairStructure() {
+            log("Starting Structural Repair...");
+            log("Attempting to parse PDF objects...");
+            
+            try {
+                const { PDFDocument } = PDFLib;
+                
+                // Try to load. PDF-Lib automatically rebuilds XREF table on load if broken
+                const pdfDoc = await PDFDocument.load(fileArrayBuffer, { 
+                    ignoreEncryption: true // Try to bypass password if metadata is corrupt
+                });
+                
+                log(`Structure parsed. Found ${pdfDoc.getPageCount()} pages.`);
+                log("Rebuilding XREF table...");
+                
+                // Saving regenerates the file structure from scratch
+                const pdfBytes = await pdfDoc.save();
+                
+                log("File reconstructed successfully.", "info");
+                downloadFile(pdfBytes, "Repaired_Structure_" + selectedFile.name);
+                
+                finishSuccess();
+
+            } catch (err) {
+                log("Structural Repair Failed.", "error");
+                log(`Reason: ${err.message}`, "error");
+                log("Switching recommendation: Try Mode B.", "warn");
+                resetButtons();
+            }
+        }
+
+        // --- MODE B: Visual Recovery (PDF.js + jsPDF) ---
+        async function repairVisual() {
+            log("Starting Visual Recovery (Deep Scan)...");
+            
+            try {
+                // 1. Load Document with PDF.js (Very fault tolerant)
+                const loadingTask = pdfjsLib.getDocument(fileArrayBuffer);
+                const pdf = await loadingTask.promise;
+                
+                log(`PDF.js successfully accessed content. Found ${pdf.numPages} pages.`);
+                
+                const { jsPDF } = window.jspdf;
+                const newDoc = new jsPDF();
+                
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    // Progress
+                    const pct = Math.round((i / pdf.numPages) * 100);
+                    progressBar.style.width = `${pct}%`;
+                    percentText.textContent = `${pct}%`;
+                    statusText.textContent = `Recovering Page ${i}/${pdf.numPages}...`;
+                    
+                    log(`Rendering Page ${i} to canvas...`);
+
+                    // Render Page
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 }); // Good quality balance
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                    // Convert to Image
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // Add to New PDF
+                    if (i > 1) newDoc.addPage([viewport.width, viewport.height]);
+                    else {
+                        newDoc.deletePage(1);
+                        newDoc.addPage([viewport.width, viewport.height]);
+                    }
+                    
+                    newDoc.setPage(i);
+                    // Conversion: px to mm (approx)
+                    newDoc.addImage(imgData, 'JPEG', 0, 0, viewport.width * 0.264583, viewport.height * 0.264583);
+                }
+
+                log("All pages recovered. Generating final file...");
+                newDoc.save("Recovered_Visual_" + selectedFile.name);
+                
+                finishSuccess();
+
+            } catch (err) {
+                log("Visual Recovery Failed.", "error");
+                log(`Reason: ${err.message}`, "error");
+                log("The file may be completely truncated or encrypted.", "error");
+                resetButtons();
+            }
+        }
+
+        // --- Utilities ---
+        function downloadFile(data, filename) {
+            const blob = new Blob([data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            log("Download initiated.");
+        }
+
+        function finishSuccess() {
+            statusText.textContent = "Complete!";
+            progressBar.classList.remove('bg-repair-500');
+            progressBar.classList.add('bg-green-500');
+            log("Process Finished successfully.");
+            resetButtons();
+        }
+
+        function resetButtons() {
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+    </script>
+</body>
+      </html>
