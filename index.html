@@ -1,399 +1,531 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
-    
-    <meta name="monetag" content="f05b50a19c07289f5d8384547c3da240"/>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Lab | Ultimate Tools for Students</title>
+    <meta name="description" content="All-in-one platform for students. Schedule maker, AI Quiz Maker, Pomodoro timer, CGPA calculator, and PDF Tools.">
     
-    <!-- SEO & META -->
-    <title>PDF Master - Free Online PDF Tools</title>
-    <meta name="description" content="Merge, Split, Compress, Convert, and Edit PDFs for free. 21+ PDF tools including PDF to Word, Excel, PPT. Secure and fast.">
-    
-    <!-- FONTS & ICONS -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#4F46E5', darkbg: '#111827', darkcard: '#1F2937' } } }
+        }
+    </script>
     <style>
-        /* --- 1. CORE VARIABLES --- */
-        :root {
-            --primary: #4f46e5;       
-            --primary-dark: #4338ca;
-            --dark: #0f172a;          
-            --text: #334155;          
-            --light-bg: #f8fafc;      
-            --white: #ffffff;
-            --shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
-            --shadow-hover: 0 20px 40px -10px rgba(79, 70, 229, 0.15);
-            --radius: 16px;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; scroll-behavior: smooth; }
+        body { transition: background-color 0.3s, color 0.3s; }
+        .hide { display: none !important; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4F46E5; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        body { background-color: var(--light-bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
-        a { text-decoration: none; color: inherit; }
+        /* MCQ Correct/Wrong Colors */
+        input[type="radio"]:checked + span { font-weight: bold; color: #4F46E5; }
+        .correct-answer { background-color: #d1fae5 !important; border-color: #10b981 !important; color: #065f46 !important; }
+        .wrong-answer { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
         
-        /* --- 2. HEADER --- */
-        header {
-            background: var(--white); padding: 1rem 5%; 
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 1000;
-        }
-
-        .logo { font-size: 1.6rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .logo i { color: #ef4444; } 
-
-        .nav-links { display: flex; gap: 15px; }
-        .nav-links button { 
-            background: transparent; border: none; color: #64748b; font-size: 1rem; font-weight: 500; 
-            cursor: pointer; padding: 10px 18px; border-radius: 8px; transition: all 0.3s ease;
-        }
-        .nav-links button:hover, .nav-links button.active { color: var(--primary); background: #e0e7ff; font-weight: 700; }
-        
-        .menu-btn { display: none; font-size: 1.5rem; color: var(--dark); cursor: pointer; }
-
-        /* --- 3. SECTIONS (SPA Logic) --- */
-        .page-section { display: none; padding: 40px 20px; max-width: 1200px; margin: 0 auto; animation: fadeUp 0.5s ease; width: 100%; }
-        .page-section.active { display: block; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- 4. HERO SECTION (Updated) --- */
-        .hero { 
-            text-align: center; padding: 5rem 1rem; 
-            background: linear-gradient(135deg, #e0e7ff 0%, #fae8ff 100%); 
-            border-radius: 0 0 50px 50px; margin-bottom: 50px; 
-        }
-        .hero h1 { font-size: 3.2rem; color: var(--dark); margin-bottom: 20px; letter-spacing: -1px; line-height: 1.2; font-weight: 800; }
-        .hero p { font-size: 1.2rem; color: #475569; max-width: 700px; margin: 0 auto; }
-
-        /* --- 5. TOOLS GRID --- */
-        .tools-grid { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-            gap: 30px; padding-bottom: 60px; 
+        /* Print Styles for Schedule Maker */
+        @media print {
+            body * { visibility: hidden; }
+            #schedule, #schedule * { visibility: visible; }
+            #schedule { position: absolute; left: 0; top: 0; width: 100%; }
+            nav, .no-print { display: none !important; }
         }
         
-        /* Tool Card Styles */
-        .tool-card {
-            background: var(--white); padding: 35px 30px; border-radius: var(--radius);
-            border: 1px solid #f1f5f9; cursor: pointer; box-shadow: var(--shadow);
-            transition: all 0.3s ease; text-decoration: none; display: flex; flex-direction: column; 
-            align-items: flex-start; position: relative; overflow: hidden;
-        }
-        .tool-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-hover); border-color: transparent; }
-        
-        .tool-icon { 
-            font-size: 2.2rem; margin-bottom: 20px; display: inline-flex; 
-            width: 70px; height: 70px; align-items: center; justify-content: center; 
-            border-radius: 18px; transition: 0.3s;
-        }
-        .tool-card h3 { font-size: 1.3rem; margin-bottom: 10px; font-weight: 700; color: var(--dark); }
-        .tool-card p { font-size: 0.95rem; color: #64748b; line-height: 1.6; }
-
-        /* COLORS */
-        .tc-red .tool-icon { color: #ef4444; background: #fee2e2; }
-        .tc-yellow .tool-icon { color: #d97706; background: #fef3c7; }
-        .tc-green .tool-icon { color: #10b981; background: #d1fae5; }
-        .tc-blue .tool-icon { color: #3b82f6; background: #dbeafe; }
-        .tc-purple .tool-icon { color: #8b5cf6; background: #ede9fe; }
-        .tc-orange .tool-icon { color: #f97316; background: #ffedd5; }
-        
-        /* --- 6. CONTENT PAGES --- */
-        .content-box { background: var(--white); padding: 50px; border-radius: 20px; box-shadow: var(--shadow); line-height: 1.8; color: var(--text); }
-        .content-box h2 { color: var(--dark); margin-bottom: 30px; font-size: 2.2rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
-        .content-box h3 { color: var(--primary); margin-top: 30px; margin-bottom: 15px; font-size: 1.4rem; }
-        .content-box p { font-size: 1.05rem; margin-bottom: 15px; }
-        .content-box ul { margin-left: 20px; margin-bottom: 20px; }
-
-        /* Form */
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
-        .form-group input, .form-group textarea { width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-size: 1rem; }
-        .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
-        .submit-btn { background: var(--primary); color: white; padding: 14px 35px; border: none; border-radius: 50px; cursor: pointer; font-weight: 600; width: 100%; font-size: 1.1rem; transition: 0.3s; }
-        .submit-btn:hover { background: var(--primary-dark); }
-
-        /* --- 7. FOOTER --- */
-        footer { background: var(--white); padding: 50px 20px; text-align: center; border-top: 1px solid #e2e8f0; margin-top: auto; }
-        .footer-nav { margin-bottom: 20px; }
-        .footer-nav button { background: none; border: none; color: #64748b; cursor: pointer; margin: 0 15px; font-size: 1rem; font-weight: 500; }
-        .footer-nav button:hover { color: var(--primary); text-decoration: underline; }
-
-        /* RESPONSIVE */
-        @media(max-width: 768px) {
-            .nav-links { 
-                display: none; position: absolute; top: 100%; left: 0; width: 100%; 
-                background: white; flex-direction: column; padding: 25px; 
-                box-shadow: 0 10px 20px rgba(0,0,0,0.05); text-align: center;
-            }
-            .nav-links.active { display: flex; }
-            .menu-btn { display: block; }
-            .hero h1 { font-size: 2.4rem; }
-            .tools-grid { grid-template-columns: 1fr; }
-        }
+        /* Editable Table Cells */
+        td[contenteditable="true"]:focus { outline: 2px solid #4F46E5; background-color: #e0e7ff; color: #111827; }
+        .dark td[contenteditable="true"]:focus { background-color: #374151; color: white; }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-900 dark:bg-darkbg dark:text-gray-100 font-sans min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header>
-        <div class="logo" onclick="showPage('home')"><i class="fa-solid fa-file-pdf"></i> PDF Master Hub</div>
-        <div class="menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div>
-        <nav class="nav-links" id="navLinks">
-            <button onclick="showPage('home')" class="active" id="btn-home">Home</button>
-            <button onclick="showPage('about')" id="btn-about">About Us</button>
-            <button onclick="showPage('privacy')" id="btn-privacy">Privacy</button>
-            <button onclick="showPage('contact')" id="btn-contact">Contact</button>
-        </nav>
-    </header>
+    <!-- TOP BANNER SPOT -->
+    <div class="w-full bg-gray-200 dark:bg-gray-800 text-center text-xs py-2 text-gray-500 no-print">
+        [ Top Banner Ad Placement ]
+    </div>
 
-    <!-- 1. HOME SECTION -->
-    <div id="home-page" class="page-section active">
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-50 bg-white dark:bg-darkcard shadow-md px-4 py-3 no-print">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center cursor-pointer" onclick="showSection('home')">
+                <i class="fa-solid fa-flask text-primary text-2xl mr-2"></i>
+                <h1 class="text-xl font-bold tracking-wide text-primary">Student Lab</h1>
+            </div>
+            <div class="hidden md:block relative w-1/3">
+                <input type="text" id="searchBar" placeholder="Search tools..." onkeyup="searchTools()" class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:border-primary">
+                <i class="fa-solid fa-search absolute left-4 top-3 text-gray-400"></i>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="showSection('home')" class="text-gray-600 dark:text-gray-300 hover:text-primary transition font-bold hidden md:block">Home</button>
+                <button onclick="toggleDarkMode()" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">
+                    <i id="theme-icon" class="fa-solid fa-moon text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-8">
         
-        <!-- Hero (No Search Bar) -->
-        <div class="hero">
-            <h1>We Make PDF Easy.</h1>
-            <p>All the tools you'll ever need to work with PDFs in one place. Merge, Split, Convert, and Edit for free.</p>
-        </div>in
-
-        <!-- Ad Placeholder -->
-        <div style="max-width:728px; margin:0 auto 50px; background:#f1f5f9; padding:25px; text-align:center; border-radius:12px; border:2px dashed #cbd5e1; color:#94a3b8; font-weight:700; letter-spacing:1px;">
-            AD SPACE (TOP BANNER)
+        <!-- Social Share Banner -->
+        <div class="flex justify-end space-x-2 mb-6 text-sm no-print">
+            <button onclick="shareLink('whatsapp')" class="bg-green-500 text-white px-3 py-1 rounded shadow hover:bg-green-600"><i class="fa-brands fa-whatsapp"></i> Share</button>
+            <button onclick="shareLink('copy')" class="bg-gray-600 text-white px-3 py-1 rounded shadow hover:bg-gray-700"><i class="fa-solid fa-link"></i> Copy</button>
         </div>
 
-        <!-- TOOLS GRID (21+ Tools) -->
-        <div class="tools-grid">
-            
-            <!-- Row 1 -->
-            <a href="merge-pdf.html" class="tool-card tc-red">
-                <div class="tool-icon"><i class="fa-solid fa-layer-group"></i></div>
-                <h3>Merge PDF</h3>
-                <p>Combine multiple PDF files into one unified document.</p>
-            </a>
-            
-            <a href="split-pdf.html" class="tool-card tc-yellow">
-                <div class="tool-icon"><i class="fa-solid fa-scissors"></i></div>
-                <h3>Split PDF</h3>
-                <p>Extract specific pages or split file into parts.</p>
-            </a>
-
-            <a href="compress-pdf.html" class="tool-card tc-green">
-                <div class="tool-icon"><i class="fa-solid fa-compress"></i></div>
-                <h3>Compress PDF</h3>
-                <p>Reduce file size while maintaining the best quality.</p>
-            </a>
-
-            <!-- Row 2 -->
-            <a href="pdf-to-word.html" class="tool-card tc-blue">
-                <div class="tool-icon"><i class="fa-solid fa-file-word"></i></div>
-                <h3>PDF to Word</h3>
-                <p>Convert your PDF to editable Word documents (DOCX).</p>
-            </a>
-
-            <a href="word-to-pdf.html" class="tool-card tc-blue">
-                <div class="tool-icon"><i class="fa-solid fa-file-pdf"></i></div>
-                <h3>Word to PDF</h3>
-                <p>Convert Microsoft Word files to PDF format.</p>
-            </a>
-
-            <a href="pdf-to-jpg.html" class="tool-card tc-purple">
-                <div class="tool-icon"><i class="fa-regular fa-image"></i></div>
-                <h3>PDF to JPG</h3>
-                <p>Convert each PDF page into a JPG image.</p>
-            </a>
-
-            <!-- Row 3 -->
-            <a href="jpg-to-pdf.html" class="tool-card tc-purple">
-                <div class="tool-icon"><i class="fa-regular fa-images"></i></div>
-                <h3>JPG to PDF</h3>
-                <p>Convert JPG images to PDF in seconds.</p>
-            </a>
-
-            <a href="excel-to-pdf.html" class="tool-card tc-green">
-                <div class="tool-icon"><i class="fa-solid fa-file-excel"></i></div>
-                <h3>Excel to PDF</h3>
-                <p>Convert Excel spreadsheets to PDF documents.</p>
-            </a>
-
-            <a href="pdf-to-excel.html" class="tool-card tc-green">
-                <div class="tool-icon"><i class="fa-solid fa-table"></i></div>
-                <h3>PDF to Excel</h3>
-                <p>Pull data straight from PDFs into Excel tables.</p>
-            </a>
-
-            <!-- Row 4 -->
-            <a href="ppt-to-pdf.html" class="tool-card tc-orange">
-                <div class="tool-icon"><i class="fa-solid fa-file-powerpoint"></i></div>
-                <h3>PPT to PDF</h3>
-                <p>Convert PowerPoint presentations to PDF.</p>
-            </a>
-
-            <a href="pdf-to-ppt.html" class="tool-card tc-orange">
-                <div class="tool-icon"><i class="fa-solid fa-file-powerpoint"></i></div>
-                <h3>PDF to PPT</h3>
-                <p>Turn your PDF files into editable PPT slides.</p>
-            </a>
-
-            <a href="delete-pages.html" class="tool-card tc-red">
-                <div class="tool-icon"><i class="fa-solid fa-trash-can"></i></div>
-                <h3>Delete Pages</h3>
-                <p>Remove unwanted pages from your PDF.</p>
-            </a>
-
-            <!-- Row 5 -->
-            <a href="unlock-pdf.html" class="tool-card tc-blue">
-                <div class="tool-icon"><i class="fa-solid fa-unlock"></i></div>
-                <h3>Unlock PDF</h3>
-                <p>Remove password security from PDF files.</p>
-            </a>
-
-            <a href="protect-pdf.html" class="tool-card tc-blue">
-                <div class="tool-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                <h3>Protect PDF</h3>
-                <p>Encrypt your PDF file with a password.</p>
-            </a>
-
-            <a href="rotate-pdf.html" class="tool-card tc-yellow">
-                <div class="tool-icon"><i class="fa-solid fa-rotate-right"></i></div>
-                <h3>Rotate PDF</h3>
-                <p>Rotate your PDF pages 90 degrees.</p>
-            </a>
-
-            <!-- Row 6 -->
-            <a href="add-watermark.html" class="tool-card tc-purple">
-                <div class="tool-icon"><i class="fa-solid fa-stamp"></i></div>
-                <h3>Add Watermark</h3>
-                <p>Stamp an image or text over your PDF.</p>
-            </a>
-
-            <a href="page-numbers.html" class="tool-card tc-red">
-                <div class="tool-icon"><i class="fa-solid fa-list-ol"></i></div>
-                <h3>Page Numbers</h3>
-                <p>Add page numbers into your PDF with ease.</p>
-            </a>
-
-            <a href="sign-pdf.html" class="tool-card tc-blue">
-                <div class="tool-icon"><i class="fa-solid fa-file-signature"></i></div>
-                <h3>Sign PDF</h3>
-                <p>Sign yourself or request electronic signatures.</p>
-            </a>
-
-            <!-- Row 7 -->
-            <a href="repair-pdf.html" class="tool-card tc-green">
-                <div class="tool-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                <h3>Repair PDF</h3>
-                <p>Recover data from a corrupted PDF file.</p>
-            </a>
-
-            <a href="organize-pdf.html" class="tool-card tc-orange">
-                <div class="tool-icon"><i class="fa-solid fa-sort"></i></div>
-                <h3>Organize PDF</h3>
-                <p>Sort, reorder, or delete pages.</p>
-            </a>
-
-            <a href="grayscale-pdf.html" class="tool-card tc-purple">
-                <div class="tool-icon"><i class="fa-solid fa-filter"></i></div>
-                <h3>Grayscale PDF</h3>
-                <p>Convert PDF text and images to black & white.</p>
-            </a>
-
-        </div>
-    </div>
-
-    <!-- 2. ABOUT PAGE -->
-    <div id="about-page" class="page-section">
-        <div class="content-box">
-            <h2>About PDF Master</h2>
-            <p>Welcome to <strong>PDF Master</strong>, your #1 source for all things related to PDF management. We are dedicated to providing you the very best of online PDF tools, with a focus on speed, data security, and ease of access.</p>
-            
-            <h3>Our Mission</h3>
-            <p>In a digital world, handling documents shouldn't be a hassle. Our mission is to simplify PDF operations for students, professionals, and businesses. We believe that basic file operations like merging, splitting, and converting should be free and accessible to everyone, everywhere.</p>
-
-            <h3>Why Choose Us?</h3>
-            <ul>
-                <li><strong>Privacy First:</strong> We process files locally or secure cloud servers. Files are deleted automatically.</li>
-                <li><strong>100% Free:</strong> No credit card required. No hidden fees.</li>
-                <li><strong>Cross-Platform:</strong> Works on Windows, Mac, Linux, Android, and iOS.</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- 3. PRIVACY POLICY -->
-    <div id="privacy-page" class="page-section">
-        <div class="content-box">
-            <h2>Privacy Policy</h2>
-            <p>At PDF Master, accessible from our website, one of our main priorities is the privacy of our visitors.</p>
-
-            <h3>How We Handle Files</h3>
-            <p>When you upload a file to PDF Master for processing, it is transferred via a secure connection (SSL). We do not read, look at, or share your files. All files are automatically deleted from our servers after processing.</p>
-
-            <h3>Cookies</h3>
-            <p>We use cookies to improve user experience and show personalized ads. By using our website, you agree to the use of cookies.</p>
-
-            <h3>Data Security</h3>
-            <p>We employ industry-standard security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information and data stored on our site.</p>
-        </div>
-    </div>
-
-    <!-- 4. CONTACT PAGE -->
-    <div id="contact-page" class="page-section">
-        <div class="content-box">
-            <h2>Contact Us</h2>
-            <p>Have a question, feedback, or found a bug? We'd love to hear from you!</p>
-            
-            <form onsubmit="event.preventDefault(); alert('Message Sent Successfully!');">
-                <div class="form-group">
-                    <label>Your Name</label>
-                    <input type="text" placeholder="John Doe" required>
+        <!-- ================= HOME SECTION ================= -->
+        <section id="home" class="block no-print">
+            <h2 class="text-2xl font-bold mb-6">All Student Tools</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="tools-grid">
+                
+                <!-- AI MCQ Maker -->
+                <div class="tool-card bg-gradient-to-br from-blue-500 to-cyan-500 text-white p-5 rounded-xl shadow cursor-pointer relative overflow-hidden" onclick="showSection('mcq-maker')">
+                    <i class="fa-solid fa-list-check text-2xl mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">AI Notes Test</h3>
+                    <p class="text-blue-100 text-xs">Convert notes to MCQs</p>
                 </div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" placeholder="john@example.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Message</label>
-                    <textarea rows="5" placeholder="How can we help you?" required></textarea>
-                </div>
-                <button type="submit" class="submit-btn">Send Message</button>
-            </form>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="footer-nav">
-            <button onclick="showPage('home')">Home</button> |
-            <button onclick="showPage('about')">About</button> |
-            <button onclick="showPage('privacy')">Privacy</button> |
-            <button onclick="showPage('contact')">Contact</button>
-        </div>
-        <p>&copy; 2024 PDF Master. All rights reserved.</p>
-    </footer>
+                <!-- Schedule Maker -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-indigo-500" onclick="showSection('schedule')">
+                    <i class="fa-solid fa-calendar-days text-2xl text-indigo-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Schedule Maker</h3>
+                    <p class="text-gray-500 text-xs">Daily/Weekly Timetable</p>
+                </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+                <!-- CGPA -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-yellow-500" onclick="showSection('cgpa')">
+                    <i class="fa-solid fa-graduation-cap text-2xl text-yellow-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Pro CGPA Calc</h3>
+                    <p class="text-gray-500 text-xs">GPA & Overall CGPA</p>
+                </div>
+
+                <!-- Exam Countdown -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-red-500" onclick="showSection('countdown')">
+                    <i class="fa-solid fa-hourglass-half text-2xl text-red-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Exam Countdown</h3>
+                    <p class="text-gray-500 text-xs">Track exam days left</p>
+                </div>
+
+                <!-- Pomodoro Timer -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-primary" onclick="showSection('timer')">
+                    <i class="fa-solid fa-stopwatch text-2xl text-primary mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Study Timer</h3>
+                    <p class="text-gray-500 text-xs">Pomodoro & Daily Tracker</p>
+                </div>
+
+                <!-- Notes Maker -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-green-500" onclick="showSection('notes')">
+                    <i class="fa-solid fa-book-open text-2xl text-green-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Notes Maker</h3>
+                    <p class="text-gray-500 text-xs">Auto-save & Download</p>
+                </div>
+
+                <!-- Unit & Word Converter -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-pink-500" onclick="showSection('converter')">
+                    <i class="fa-solid fa-calculator text-2xl text-pink-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">Converter & Words</h3>
+                    <p class="text-gray-500 text-xs">Units, Words, Read time</p>
+                </div>
+
+                <!-- PDF Tools -->
+                <div class="tool-card bg-white dark:bg-darkcard p-5 rounded-xl shadow cursor-pointer border-t-4 border-purple-500" onclick="showSection('pdf-tools')">
+                    <i class="fa-solid fa-file-pdf text-2xl text-purple-500 mb-2"></i>
+                    <h3 class="text-lg font-bold mb-1">PDF Tools</h3>
+                    <p class="text-gray-500 text-xs">Merge, Split, Compress</p>
+                </div>
+
+            </div>
+            
+            <!-- Blog Section (Requested in Prompt 1) -->
+            <div class="mt-10 bg-primary text-white rounded-xl p-6 flex flex-col md:flex-row items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold mb-1">Study Tips Blog</h3>
+                    <p class="text-sm text-blue-100">Read latest tips to score A+ and manage time efficiently.</p>
+                </div>
+                <button class="mt-4 md:mt-0 bg-white text-primary font-bold px-6 py-2 rounded-full hover:bg-gray-100 text-sm">Read Blog</button>
+            </div>
+        </section>
+
+        <!-- MIDDLE BANNER SPOT -->
+        <div class="w-full bg-gray-200 dark:bg-gray-800 text-center text-xs py-2 text-gray-500 my-6 no-print">[ Middle Banner Ad Placement ]</div>
+
+        <!-- ================= TOOLS SECTIONS ================= -->
+
+        <!-- 1. AI MCQ MAKER -->
+        <section id="mcq-maker" class="hide w-full max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold mb-2"><i class="fa-solid fa-list-check text-cyan-500"></i> AI Notes Test Maker</h2>
+            
+            <div id="api-key-box" class="bg-yellow-50 dark:bg-yellow-900/30 p-4 border rounded mb-4">
+                <p class="text-sm text-yellow-800 dark:text-yellow-400 mb-2">Save free Google Gemini API Key to use AI tools locally.</p>
+                <div class="flex"><input type="password" id="gemini-api-key" placeholder="API Key..." class="p-2 border rounded w-full text-sm dark:bg-gray-700"><button onclick="saveApiKey()" class="bg-primary text-white px-4 py-2 rounded ml-2">Save</button></div>
+            </div>
+
+            <div id="mcq-setup-area" class="bg-white dark:bg-darkcard p-6 rounded-xl shadow">
+                <label class="font-bold block mb-2">Paste Study Notes:</label>
+                <textarea id="mcq-notes" class="w-full h-32 p-3 border rounded-lg focus:outline-none dark:bg-gray-700 mb-4"></textarea>
+                <div class="flex gap-4">
+                    <select id="mcq-count" class="p-2 border rounded dark:bg-gray-700"><option value="3">3 Qs</option><option value="5" selected>5 Qs</option></select>
+                    <button onclick="generateQuiz()" id="generate-quiz-btn" class="bg-cyan-500 text-white px-6 py-2 rounded font-bold hover:bg-cyan-600 w-full">Generate Quiz</button>
+                </div>
+                <div id="mcq-loader" class="hidden mt-4 flex items-center text-cyan-600 font-bold"><div class="loader mr-3"></div> AI is creating your test...</div>
+            </div>
+
+            <div id="quiz-area" class="hidden bg-white dark:bg-darkcard p-6 rounded-xl shadow">
+                <div id="quiz-questions-container" class="space-y-6 mb-6"></div>
+                <button onclick="submitQuiz()" id="submit-quiz-btn" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold">Submit Test</button>
+                <div id="quiz-results" class="hidden mt-6 text-center p-6 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-500">
+                    <h2 class="text-3xl font-bold">Score: <span id="quiz-score-display"></span></h2>
+                    <button onclick="resetQuiz()" class="mt-4 border border-blue-500 text-blue-500 px-4 py-1 rounded">Create New</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SCHEDULE MAKER (Weekly & Color Coding) -->
+        <section id="schedule" class="hide w-full max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-4 no-print">
+                <h2 class="text-3xl font-bold"><i class="fa-solid fa-calendar-days text-indigo-500"></i> Class Schedule Maker</h2>
+                <div class="space-x-2">
+                    <button onclick="generateRandomSchedule()" class="bg-purple-500 text-white px-3 py-1 rounded shadow text-sm hover:bg-purple-600"><i class="fa-solid fa-dice"></i> Randomize</button>
+                    <button onclick="window.print()" class="bg-indigo-600 text-white px-3 py-1 rounded shadow text-sm hover:bg-indigo-700"><i class="fa-solid fa-print"></i> Print / PDF</button>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mb-4 no-print">Click any cell to type. Auto-saves to your browser! Use standard color names like "red", "blue", "green" inside brackets e.g., <b>Math [blue]</b> to color code.</p>
+
+            <div class="overflow-x-auto bg-white dark:bg-darkcard p-4 rounded-xl shadow">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200 dark:bg-gray-700 text-sm">
+                            <th class="border p-2 w-24">Time</th>
+                            <th class="border p-2">Mon</th><th class="border p-2">Tue</th><th class="border p-2">Wed</th>
+                            <th class="border p-2">Thu</th><th class="border p-2">Fri</th><th class="border p-2">Sat</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-body">
+                        <!-- JS renders rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. EXAM COUNTDOWN -->
+        <section id="countdown" class="hide w-full max-w-2xl mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-6"><i class="fa-solid fa-hourglass-half text-red-500"></i> Exam Countdown</h2>
+            <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow mb-6">
+                <input type="text" id="exam-name" placeholder="Exam Name (e.g. Finals)" class="w-full p-2 mb-4 border rounded dark:bg-gray-700">
+                <input type="date" id="exam-date" class="w-full p-2 mb-4 border rounded dark:bg-gray-700 text-gray-500">
+                <button onclick="saveExam()" class="bg-red-500 text-white px-6 py-2 rounded font-bold hover:bg-red-600 w-full">Start Timer</button>
+            </div>
+            
+            <div id="countdown-display" class="hidden bg-red-50 dark:bg-red-900/20 p-8 rounded-xl border border-red-500">
+                <h3 id="c-name" class="text-2xl font-bold text-red-700 dark:text-red-300 mb-4"></h3>
+                <div class="grid grid-cols-3 gap-4 text-4xl font-black text-red-600 dark:text-red-400">
+                    <div><span id="c-days">0</span><div class="text-sm font-normal mt-1 text-gray-600">Days</div></div>
+                    <div><span id="c-hours">0</span><div class="text-sm font-normal mt-1 text-gray-600">Hours</div></div>
+                    <div><span id="c-mins">0</span><div class="text-sm font-normal mt-1 text-gray-600">Minutes</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. POMODORO TIMER & TRACKER -->
+        <section id="timer" class="hide flex flex-col items-center py-6">
+            <h2 class="text-3xl font-bold mb-6"><i class="fa-solid fa-stopwatch text-primary"></i> Study Timer</h2>
+            
+            <div class="bg-white dark:bg-darkcard p-8 rounded-full shadow-2xl border-8 border-primary w-64 h-64 flex flex-col items-center justify-center mb-6">
+                <span id="time-display" class="text-5xl font-mono font-bold">25:00</span>
+            </div>
+            <div class="space-x-2 mb-6 text-sm">
+                <button onclick="startTimer()" class="bg-primary text-white px-5 py-2 rounded shadow hover:bg-blue-700">Start</button>
+                <button onclick="pauseTimer()" class="bg-yellow-500 text-white px-5 py-2 rounded shadow hover:bg-yellow-600">Pause</button>
+                <button onclick="resetTimer()" class="bg-red-500 text-white px-5 py-2 rounded shadow hover:bg-red-600">Reset</button>
+            </div>
+            
+            <div class="bg-gray-200 dark:bg-gray-800 p-4 rounded-xl w-full max-w-sm text-center">
+                <h4 class="font-bold mb-2">Daily Study Tracker</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Total Focused Today: <span id="daily-tracked" class="font-bold text-primary text-lg">0</span> mins</p>
+            </div>
+        </section>
+
+        <!-- 5. UNIT & WORD CONVERTER -->
+        <section id="converter" class="hide w-full max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold mb-6"><i class="fa-solid fa-calculator text-pink-500"></i> Converter & Tools</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Unit Converter -->
+                <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow">
+                    <h3 class="font-bold mb-4 border-b pb-2">Length Converter</h3>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="number" id="km-val" placeholder="Kilometers" oninput="conv('km')" class="w-1/2 p-2 border rounded dark:bg-gray-700">
+                        <span>=</span>
+                        <input type="number" id="mi-val" placeholder="Miles" oninput="conv('mi')" class="w-1/2 p-2 border rounded dark:bg-gray-700">
+                    </div>
+                    <h3 class="font-bold mb-4 border-b pb-2">Weight Converter</h3>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="kg-val" placeholder="Kilograms" oninput="conv('kg')" class="w-1/2 p-2 border rounded dark:bg-gray-700">
+                        <span>=</span>
+                        <input type="number" id="lb-val" placeholder="Pounds" oninput="conv('lb')" class="w-1/2 p-2 border rounded dark:bg-gray-700">
+                    </div>
+                </div>
+
+                <!-- Word Counter -->
+                <div class="bg-white dark:bg-darkcard p-6 rounded-xl shadow">
+                    <h3 class="font-bold mb-4 border-b pb-2">Word Counter</h3>
+                    <textarea id="word-area" oninput="updateWordCount()" class="w-full h-24 p-2 border rounded dark:bg-gray-700 mb-2" placeholder="Type or paste text..."></textarea>
+                    <div class="flex justify-between text-sm font-bold text-pink-600 dark:text-pink-400">
+                        <span>Words: <span id="w-count">0</span></span>
+                        <span>Chars: <span id="c-count">0</span></span>
+                        <span>Read Time: <span id="r-time">0m</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. PDF TOOLS (Placeholder UI with Ad Placement) -->
+        <section id="pdf-tools" class="hide w-full max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-6"><i class="fa-solid fa-file-pdf text-purple-500"></i> PDF Tools Suite</h2>
+            <p class="text-gray-500 mb-6">Select a tool to process your PDFs directly in your browser securely.</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <button class="bg-white dark:bg-darkcard p-4 rounded shadow border hover:border-purple-500" onclick="alert('Merge PDF tool selected! (Attach JS Library here)')"><i class="fa-solid fa-layer-group block text-2xl mb-2 text-purple-500"></i> Merge PDF</button>
+                <button class="bg-white dark:bg-darkcard p-4 rounded shadow border hover:border-purple-500" onclick="alert('Split PDF tool selected!')"><i class="fa-solid fa-cut block text-2xl mb-2 text-purple-500"></i> Split PDF</button>
+                <button class="bg-white dark:bg-darkcard p-4 rounded shadow border hover:border-purple-500" onclick="alert('Compress PDF tool selected!')"><i class="fa-solid fa-compress block text-2xl mb
+                                  <button class="bg-white dark:bg-darkcard p-4 rounded shadow border hover:border-purple-500" onclick="alert('PDF to Image tool selected!')"><i class="fa-solid fa-image block text-2xl mb-2 text-purple-500"></i> to Image</button>
+            </div>
+
+            <!-- Ad Placement near PDF Download -->
+            <div class="bg-gray-200 dark:bg-gray-800 text-xs py-4 text-gray-500 rounded border border-dashed border-gray-400">[ Ad Placement (Monetag/Adsense) Near PDF Upload/Download Buttons ]
+            </div>
+        </section>
+
+        <!-- (Keeping CGPA and Notes hidden structures clean) -->
+        <section id="cgpa" class="hide max-w-2xl mx-auto"><h2 class="text-3xl font-bold mb-4">CGPA Calculator</h2><p class="text-sm mb-4">Calculate semester GPA.</p><div id="subject-rows" class="space-y-2 mb-4"></div><button onclick="addSubjectRow()" class="text-primary text-sm mb-4">+ Add Subject</button><button onclick="calculateCGPA()" class="w-full bg-yellow-500 text-white py-2 rounded font-bold">Calculate</button><div id="final-gpa" class="mt-4 text-2xl font-bold text-center"></div></section>
+        
+        <section id="notes" class="hide max-w-4xl mx-auto"><h2 class="text-3xl font-bold mb-4">Notes Maker</h2><textarea id="note-area" oninput="saveNote()" class="w-full h-64 p-4 border rounded dark:bg-gray-700 mb-4" placeholder="Type... auto-saves."></textarea><div class="flex justify-between items-center"><button onclick="downloadNote()" class="bg-green-500 text-white px-6 py-2 rounded"><i class="fa-solid fa-download"></i> Download .TXT</button><div class="text-xs text-gray-400">[ Ad Near Download ]</div></div></section>
+
+    </main>
+
+    <!-- BOTTOM BANNER SPOT -->
+    <div class="w-full bg-gray-200 dark:bg-gray-800 text-center text-xs py-2 text-gray-500 mt-auto no-print">[ Bottom Banner Ad Placement ]</div>
+
+    <!-- Javascript -->
     <script>
-        // 1. Navigation Logic
-        function showPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            // Remove active class from nav
-            document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
-            
-            // Show selected page
-            document.getElementById(pageId + '-page').classList.add('active');
-            
-            // Activate button
-            const btn = document.getElementById('btn-' + pageId);
-            if(btn) btn.classList.add('active');
+        // --- 1. Navigation & Setup ---
+        const sections =['home', 'mcq-maker', 'schedule', 'countdown', 'timer', 'converter', 'pdf-tools', 'cgpa', 'notes'];
+        function showSection(id) {
+            sections.forEach(s => document.getElementById(s).classList.add('hide'));
+            document.getElementById(id).classList.remove('hide');
+            window.scrollTo(0,0);
+        }
+        function searchTools() {
+            let filter = document.getElementById('searchBar').value.toLowerCase();
+            document.querySelectorAll('.tool-card').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(filter) ? "" : "none";
+            });
+        }
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); }
+        function shareLink(type) { alert(type === 'copy' ? "Link Copied!" : "Opening Share..."); }
 
-            // Close mobile menu if open
-            document.getElementById('navLinks').classList.remove('active');
-            window.scrollTo(0, 0);
+        // --- 2. Schedule Maker Logic (Editable Table + Color Parse) ---
+        const scheduleBody = document.getElementById('schedule-body');
+        const times =["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"];
+        
+        function renderSchedule() {
+            scheduleBody.innerHTML = "";
+            let savedData = JSON.parse(localStorage.getItem('schedule_data')) || {};
+            
+            times.forEach((time, rIdx) => {
+                let row = `<tr><td class="border p-2 font-bold text-xs text-gray-500">${time}</td>`;
+                for(let cIdx=0; cIdx<6; cIdx++) {
+                    let cellId = `c_${rIdx}_${cIdx}`;
+                    let content = savedData[cellId] || "";
+                    // Parse color e.g. "Math [blue]"
+                    let bgColor = "transparent"; let textColor = "";
+                    if(content.includes('[red]')) { bgColor="#fee2e2"; textColor="#991b1b"; content = content.replace('[red]',''); }
+                    else if(content.includes('[blue]')) { bgColor="#dbeafe"; textColor="#1e40af"; content = content.replace('[blue]',''); }
+                    else if(content.includes('[green]')) { bgColor="#d1fae5"; textColor="#065f46"; content = content.replace('[green]',''); }
+                    
+                    row += `<td id="${cellId}" contenteditable="true" onblur="saveSchedule()" class="border p-2 text-sm focus:outline-none transition" style="background-color:${bgColor}; color:${textColor}">${content}</td>`;
+                }
+                row += `</tr>`;
+                scheduleBody.innerHTML += row;
+            });
+        }
+        function saveSchedule() {
+            let data = {};
+            document.querySelectorAll('td[contenteditable="true"]').forEach(td => {
+                data[td.id] = td.innerText;
+            });
+            localStorage.setItem('schedule_data', JSON.stringify(data));
+            renderSchedule(); // Re-render to apply color tags immediately
+        }
+        function generateRandomSchedule() {
+            let subjects = ["Math [blue]", "Physics [red]", "Break [green]", "English", "History [blue]"];
+            let data = {};
+            for(let r=0; r<times.length; r++){
+                for(let c=0; c<6; c++){
+                    if(Math.random() > 0.4) data[`c_${r}_${c}`] = subjects[Math.floor(Math.random()*subjects.length)];
+                }
+            }
+            localStorage.setItem('schedule_data', JSON.stringify(data));
+            renderSchedule();
+        }
+        renderSchedule();
+
+        // --- 3. Exam Countdown Logic ---
+        let countInterval;
+        function loadExam() {
+            let data = JSON.parse(localStorage.getItem('exam_data'));
+            if(data) { document.getElementById('exam-name').value = data.name; document.getElementById('exam-date').value = data.date; startCountdown(data.name, data.date); }
+        }
+        function saveExam() {
+            let n = document.getElementById('exam-name').value; let d = document.getElementById('exam-date').value;
+            if(!n || !d) return alert("Enter details");
+            localStorage.setItem('exam_data', JSON.stringify({name:n, date:d}));
+            startCountdown(n, d);
+        }
+        function startCountdown(name, dateStr) {
+            clearInterval(countInterval);
+            document.getElementById('countdown-display').classList.remove('hidden');
+            document.getElementById('c-name').innerText = name + " Exam";
+            let target = new Date(dateStr).getTime();
+            
+            countInterval = setInterval(() => {
+                let now = new Date().getTime(); let dist = target - now;
+                if(dist < 0) { clearInterval(countInterval); document.getElementById('c-days').innerText = "0"; return; }
+                document.getElementById('c-days').innerText = Math.floor(dist / (1000 * 60 * 60 * 24));
+                document.getElementById('c-hours').innerText = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                document.getElementById('c-mins').innerText = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+            }, 1000);
+        }
+        loadExam();
+
+        // --- 4. Timer & Daily Tracker ---
+        let timerInt; let tLeft = 25*60;
+        let trackedMins = parseInt(localStorage.getItem('tracked_mins')) || 0;
+        document.getElementById('daily-tracked').innerText = trackedMins;
+
+        function updateT() {
+            let m=Math.floor(tLeft/60); let s=tLeft%60;
+            document.getElementById('time-display').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+        }
+        function startTimer() {
+            clearInterval(timerInt);
+            timerInt = setInterval(() => {
+                if(tLeft > 0) { tLeft--; updateT(); } 
+                else { 
+                    clearInterval(timerInt); alert("Session Done!"); 
+                    trackedMins += 25; localStorage.setItem('tracked_mins', trackedMins);
+                    document.getElementById('daily-tracked').innerText = trackedMins;
+                }
+            }, 1000);
+        }
+        function pauseTimer() { clearInterval(timerInt); }
+        function resetTimer() { clearInterval(timerInt); tLeft=25*60; updateT(); }
+
+        // --- 5. Unit & Word Converter ---
+        function conv(type) {
+            let km=document.getElementById('km-val'), mi=document.getElementById('mi-val');
+            let kg=document.getElementById('kg-val'), lb=document.getElementById('lb-val');
+            if(type==='km') mi.value = (km.value * 0.621371).toFixed(2);
+            if(type==='mi') km.value = (mi.value * 1.60934).toFixed(2);
+            if(type==='kg') lb.value = (kg.value * 2.20462).toFixed(2);
+            if(type==='lb') kg.value = (lb.value * 0.453592).toFixed(2);
+        }
+        function updateWordCount() {
+            let text = document.getElementById('word-area').value;
+            let words = text.match(/\b[-?(\w+)?]+\b/gi);
+            let wc = words ? words.length : 0;
+            document.getElementById('w-count').innerText = wc;
+            document.getElementById('c-count').innerText = text.length;
+            document.getElementById('r-time').innerText = Math.ceil(wc/200)+"m";
         }
 
-        // 2. Mobile Menu Toggle
-        function toggleMenu() {
-            document.getElementById('navLinks').classList.toggle('active');
+        // --- 6. Quick CGPA & Notes Setup ---
+        function addSubjectRow() {
+            let html = `<div class="flex space-x-2"><input type="number" placeholder="Credits" class="w-1/2 p-2 border rounded cr"><input type="number" placeholder="GPA(1-4)" class="w-1/2 p-2 border rounded gp"></div>`;
+            document.getElementById('subject-rows').insertAdjacentHTML('beforeend', html);
+        }
+        for(let i=0;i<3;i++) addSubjectRow();
+        function calculateCGPA() {
+            let tCr=0, tGp=0;
+            document.querySelectorAll('#subject-rows .flex').forEach(r => {
+                let c=parseFloat(r.querySelector('.cr').value), g=parseFloat(r.querySelector('.gp').value);
+                if(c&&g){ tCr+=c; tGp+=c*g; }
+            });
+            document.getElementById('final-gpa').innerText = tCr ? "GPA: " + (tGp/tCr).toFixed(2) : "Enter Data!";
+        }
+        
+        const noteArea = document.getElementById('note-area');
+        noteArea.value = localStorage.getItem('notes') || "";
+        function saveNote() { localStorage.setItem('notes', noteArea.value); }
+        function downloadNote() {
+            let blob = new Blob([noteArea.value], {type:'text/plain'});
+            let a = document.createElement('a'); a.download="Notes.txt"; a.href=URL.createObjectURL(blob); a.click();
+        }
+
+        // --- 7. AI MCQ TEST MAKER (Gemini API) ---
+        let savedKey = localStorage.getItem('gemini_api_key');
+        if(savedKey) document.getElementById('api-key-box').style.display='none';
+        function saveApiKey() {
+            let k = document.getElementById('gemini-api-key').value;
+            if(k){ localStorage.setItem('gemini_api_key', k); savedKey=k; document.getElementById('api-key-box').style.display='none'; }
+        }
+
+        let quizData =[];
+        async function generateQuiz() {
+            let text = document.getElementById('mcq-notes').value;
+            let count = document.getElementById('mcq-count').value;
+            if(!savedKey) return alert("Save API key first!"); if(text.length<30) return alert("Paste more notes!");
+            
+            document.getElementById('mcq-loader').classList.remove('hidden');
+            let prompt = `Make ${count} multiple choice questions from this text. Output ONLY valid JSON array like: [{"question":"Q1?", "options":["A","B","C","D"], "answer":"A"}]. Text: ${text}`;
+            
+            try {
+                let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${savedKey}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+                });
+                let data = await res.json();
+                let cleanJson = data.candidates[0].content.parts[0].text.replace(/```json/gi,'').replace(/```/g,'').trim();
+                quizData = JSON.parse(cleanJson);
+                renderQuiz();
+            } catch(e) { alert("Error: " + e.message); }
+            document.getElementById('mcq-loader').classList.add('hidden');
+        }
+
+        function renderQuiz() {
+            document.getElementById('mcq-setup-area').classList.add('hidden');
+            document.getElementById('quiz-area').classList.remove('hidden');
+            let box = document.getElementById('quiz-questions-container'); box.innerHTML = "";
+            quizData.forEach((q, i) => {
+                let opts = q.options.map(opt => `<label class="block p-2 border rounded mb-2 opt-${i}"><input type="radio" name="q${i}" value="${opt}" class="mr-2">${opt}</label>`).join('');
+                box.innerHTML += `<div class="p-4 bg-gray-50 border rounded mb-4"><h4 class="font-bold mb-2">Q${i+1}: ${q.question}</h4>${opts}</div>`;
+            });
+        }
+
+        function submitQuiz() {
+            let score = 0;
+            quizData.forEach((q, i) => {
+                let sel = document.querySelector(`input[name="q${i}"]:checked`);
+                document.querySelectorAll(`.opt-${i}`).forEach(lbl => {
+                    let r = lbl.querySelector('input'); r.disabled = true;
+                    if(r.value === q.answer) lbl.classList.add('correct-answer');
+                    if(sel && r === sel && r.value !== q.answer) lbl.classList.add('wrong-answer');
+                });
+                if(sel && sel.value === q.answer) score++;
+            });
+            document.getElementById('submit-quiz-btn').classList.add('hidden');
+            document.getElementById('quiz-results').classList.remove('hidden');
+            document.getElementById('quiz-score-display').innerText = `${score} / ${quizData.length}`;
+        }
+        function resetQuiz() {
+            document.getElementById('mcq-setup-area').classList.remove('hidden');
+            document.getElementById('quiz-area').classList.add('hidden');
+            document.getElementById('quiz-results').classList.add('hidden');
+            document.getElementById('submit-quiz-btn').classList.remove('hidden');
         }
     </script>
 </body>
-        </html>
+    </html>                                                                                                                                             
